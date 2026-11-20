@@ -36,13 +36,13 @@ function tone(
   ctx: BaseAudioContext,
   out: AudioNode,
   t: number,
-  o: { type: OscillatorType; f0: number; f1?: number; dur: number; gain: number; attack?: number; delay?: number },
+  o: { type: OscillatorType; f0: number; f1?: number; glide?: number; dur: number; gain: number; attack?: number; delay?: number },
 ): void {
   const start = t + (o.delay ?? 0);
   const osc = ctx.createOscillator();
   osc.type = o.type;
   osc.frequency.setValueAtTime(o.f0, start);
-  if (o.f1 !== undefined) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.f1), start + o.dur);
+  if (o.f1 !== undefined) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.f1), start + (o.glide ?? o.dur));
   osc.connect(env(ctx, out, start, o.gain, o.attack ?? 0.005, o.dur));
   osc.start(start);
   osc.stop(start + o.dur + 0.02);
@@ -71,18 +71,21 @@ function noise(
 export const RECIPES: Record<string, Recipe> = {
   'sfx.ui.tap': (c, o, t, v) => tone(c, o, t, { type: 'sine', f0: 900, f1: 1200, dur: 0.05, gain: 0.25 * v }),
 
-  // bright metallic "ting" with a slight random pitch
+  // clear bell "ding" with a gentle shimmer (user's pick "A")
   'sfx.coin.flip': (c, o, t, v) => {
-    const p = 0.95 + Math.random() * 0.1;
-    tone(c, o, t, { type: 'sine', f0: 2600 * p, f1: 2750 * p, dur: 0.16, gain: 0.22 * v });
-    tone(c, o, t, { type: 'sine', f0: 3900 * p, dur: 0.1, gain: 0.1 * v });
-    noise(c, o, t, { filter: 'highpass', f0: 6000, dur: 0.03, gain: 0.08 * v });
+    const p = 0.97 + Math.random() * 0.06;
+    tone(c, o, t, { type: 'sine', f0: 3136 * p, dur: 0.7, gain: 0.22 * v, attack: 0.002 });
+    tone(c, o, t, { type: 'sine', f0: 3146 * p, dur: 0.7, gain: 0.12 * v, attack: 0.002 });
+    tone(c, o, t, { type: 'sine', f0: 8655 * p, dur: 0.12, gain: 0.05 * v, attack: 0.002 });
+    noise(c, o, t, { filter: 'highpass', f0: 9000, dur: 0.012, gain: 0.15 * v, attack: 0.001 });
   },
 
+  // high flicked "ping!" (user's pick: coin sound "B", used for the coin break)
   'sfx.coin.break': (c, o, t, v) => {
-    noise(c, o, t, { filter: 'bandpass', f0: 2500, f1: 800, q: 2, dur: 0.22, gain: 0.5 * v });
-    tone(c, o, t, { type: 'square', f0: 520, f1: 110, dur: 0.25, gain: 0.12 * v });
-    tone(c, o, t, { type: 'sine', f0: 3100, dur: 0.06, gain: 0.12 * v });
+    const p = 0.97 + Math.random() * 0.06;
+    tone(c, o, t, { type: 'sine', f0: 3900 * p, f1: 4186 * p, glide: 0.02, dur: 0.38, gain: 0.24 * v, attack: 0.002 });
+    tone(c, o, t, { type: 'sine', f0: 6279 * p, dur: 0.1, gain: 0.07 * v, attack: 0.002 });
+    noise(c, o, t, { filter: 'highpass', f0: 8000, dur: 0.01, gain: 0.18 * v, attack: 0.001 });
   },
 
   'sfx.clash.win': (c, o, t, v) => {
