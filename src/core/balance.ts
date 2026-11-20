@@ -39,6 +39,10 @@ export interface Balance {
     bossEvery: number;
     bossHpMultiplier: number;
   };
-  rewards: { offerCount: number };
+  rewards: {
+    offerCount: number;
+    /** HP ratio of max HP recovered automatically after every won battle. */
+    healAfterBattle: number;
+  };
   features: { sinAndEgo: boolean };
 }

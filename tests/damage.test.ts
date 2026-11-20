@@ -107,3 +107,13 @@ describe('max one-sided damage (lethal warning)', () => {
     expect(maxOneSidedDamage(atk, effectiveSkill(atk, 'S1'), 1, tgt, 0, bal())).toBe(14);
   });
 });
+
+describe('event order', () => {
+  it('a stagger is reported right after the hit that caused it', () => {
+    const atk = makeUnit('player', { basePower: 50, coinPower: 0, coinCount: 2 });
+    const tgt = makeUnit('enemy', {}, { maxHp: 100, staggerThresholds: [0.6] });
+    const ev: BattleEvent[] = [];
+    oneSidedAttack(atk, effectiveSkill(atk, 'S1'), 2, tgt, 0, scriptedRng([false, false]), bal(), ev);
+    expect(ev.map((e) => e.t)).toEqual(['coinHit', 'stagger', 'coinHit']);
+  });
+});

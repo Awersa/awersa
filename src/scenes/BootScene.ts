@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, FONT, GAME_WIDTH } from '../config/display.ts';
 import { gameContext } from '../game/context.ts';
 import { SceneKey } from './keys.ts';
+import { ensurePlaceholderTextures } from '../ui/placeholders.ts';
 
 /** Validates game data, then goes to the title. Shows the errors on screen if data is broken. */
 export class BootScene extends Phaser.Scene {
@@ -23,6 +24,7 @@ export class BootScene extends Phaser.Scene {
         });
       return;
     }
+    ensurePlaceholderTextures(this);
     this.scene.start(SceneKey.Title);
   }
 }

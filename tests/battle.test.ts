@@ -16,8 +16,10 @@ function play(state: ReturnType<typeof createBattle>['state'], b: Balance, pick 
 const sortedDeck = (u: UnitState) => [...u.hand, ...u.drawPile].sort();
 
 describe('battle flow', () => {
-  it('player wins after 3 clash wins (always stronger, no damage)', () => {
+  it('optional rule: player wins after 3 clash wins', () => {
     const b = bal();
+    b.battle.playerClashWinsToWin = 3;
+    b.battle.enemyClashWinsToWin = 3;
     const p = makeUnit('player', { basePower: 50, coinPower: 0, coinCount: 1 }, { maxHp: 9999 });
     const e = makeUnit('enemy', { basePower: 1, coinPower: 0, coinCount: 1 }, { maxHp: 9999, staggerThresholds: [] });
     const { state } = createBattle(p, e, 1, b);
@@ -27,8 +29,10 @@ describe('battle flow', () => {
     expect(ev.at(-1)).toEqual({ t: 'battleEnd', outcome: 'win', reason: 'clashWins' });
   });
 
-  it('player loses when the enemy reaches 3 clash wins', () => {
+  it('optional rule: player loses when the enemy reaches 3 clash wins', () => {
     const b = bal();
+    b.battle.playerClashWinsToWin = 3;
+    b.battle.enemyClashWinsToWin = 3;
     const p = makeUnit('player', { basePower: 1, coinPower: 0, coinCount: 1 }, { maxHp: 9999, staggerThresholds: [] });
     const e = makeUnit('enemy', { basePower: 50, coinPower: 0, coinCount: 1 }, { maxHp: 9999 });
     const { state } = createBattle(p, e, 1, b);
@@ -68,10 +72,8 @@ describe('battle flow', () => {
     expect(ev.at(-1)).toMatchObject({ reason: 'playerHp' });
   });
 
-  it('clash-win rules can be disabled (HP only)', () => {
+  it('default: HP is the only win condition (clash wins never end the battle)', () => {
     const b = bal();
-    b.battle.playerClashWinsToWin = null;
-    b.battle.enemyClashWinsToWin = null;
     const p = makeUnit('player', { basePower: 20, coinPower: 0, coinCount: 1 }, { maxHp: 9999 });
     const e = makeUnit('enemy', { basePower: 1, coinPower: 0, coinCount: 1 }, { maxHp: 200, staggerThresholds: [] });
     const { state } = createBattle(p, e, 1, b);

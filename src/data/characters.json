@@ -2,7 +2,7 @@
   {
     "id": "hangyeol",
     "name": "한결",
-    "maxHp": 90,
+    "maxHp": 140,
     "staggerThresholds": [
       0.6,
       0.3
@@ -31,7 +31,7 @@
   {
     "id": "dodam",
     "name": "도담",
-    "maxHp": 110,
+    "maxHp": 170,
     "staggerThresholds": [
       0.5,
       0.25

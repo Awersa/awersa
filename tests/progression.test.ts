@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createEnemyForFloor, isBossFloor, pickEnemyDef } from '../src/core/floor.ts';
-import { applyReward, generateOffers, type RewardOffer } from '../src/core/rewards.ts';
+import { applyReward, generateOffers, recoverAfterBattle, type RewardOffer } from '../src/core/rewards.ts';
 import { createRng } from '../src/core/rng.ts';
 import { effectiveSkill, powerRange } from '../src/core/skill.ts';
 import { createUnit, indexSkills } from '../src/core/unit.ts';
@@ -51,6 +51,16 @@ describe('rewards (min / max clash power)', () => {
     expect(u.hp).toBe(100);
     applyReward(u, offer({ kind: 'maxHp', amount: 20 }));
     expect([u.hp, u.maxHp]).toEqual([120, 120]);
+  });
+
+  it('recovers a share of max HP after each won battle', () => {
+    const b = bal();
+    b.rewards.healAfterBattle = 0.3;
+    const u = makeUnit('player', {}, { maxHp: 100 });
+    u.hp = 50;
+    expect(recoverAfterBattle(u, b)).toBe(30);
+    expect(recoverAfterBattle(u, b)).toBe(20);
+    expect(u.hp).toBe(100);
   });
 
   it('offers are distinct and target real slots', () => {

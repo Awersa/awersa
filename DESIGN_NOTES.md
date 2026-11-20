@@ -117,3 +117,40 @@ The spec is in `SPEC.md`. This file records **assumptions I made** where the spe
 |---|---|---|---|---|
 | 한결 | 13% | 5 | 23% | 83% / 17% |
 | 도담 | 19% | 4 | 18% | 65% / 35% |
+
+## Rule change (user request): HP is the only win condition
+- **Clash-win victory and defeat are removed.** Win = bring the enemy's HP to 0. Loss = your HP reaches 0. (`battle.playerClashWinsToWin / enemyClashWinsToWin` = `null`; the code still supports numbers if you ever want them back.)
+- **Difficulty now comes from reward choices, not HP** (user request). Changes:
+  - Enemy HP is high (thug 160 / rust 190 / hound 150 / boss 300). If you keep winning clashes you eventually win, so long fights are fine.
+  - Player HP was raised to match (한결 140 / 도담 170).
+  - **Post-battle recovery**: after every won battle you heal 30% of max HP automatically (`rewards.healAfterBattle`). This keeps HP attrition from deciding runs.
+  - **Enemy growth per floor**: base power +1 every 2 floors, coin power +1 every 4 floors, level +1 per floor, HP +8% per floor. On average the enemy gains about +1 power per floor. Picking power rewards keeps pace; picking poorly falls behind.
+  - Boss skills toned down (it was an unbeatable wall): S1 4+2×3, S2 5+3×3, S3 4+5×3.
+- The simulator now compares **"good reward picks"** (heal when below 50% HP, otherwise the largest power gain) against **random picks** (N=2000):
+
+| | 1층 패배 | 5층 보스 돌파 (잘 고름 / 무작위) | 10층 도달 (잘 고름 / 무작위) | 상위 10% 층 |
+|---|---|---|---|---|
+| 한결 | 6% | 38% / 18% | 12% / 1.4% | 12 / 7 |
+| 도담 | 8% | 31% / 11% | 7.5% / 0.3% | 10 / 6 |
+
+## Milestone 4 — clash animation
+
+### What it does
+- `src/ui/ClashAnimator.ts` replays a turn's engine events. It never computes rules.
+  - skill names for each side
+  - coins pop in
+  - each clash round: all remaining coins flip (gold = heads, grey = tails), power numbers bounce in (winner gold, loser grey), and the loser's coin cracks and falls
+  - ties show "동점! 재굴림"
+  - one-sided attack: each coin flips and pulses; a damage number floats from the target; the camera shakes in proportion to the damage; the target flashes; the HP bar tweens down
+  - banners for clash win, stagger and panic
+- **Speed button** (top bar): ×1 → ×2 → 연출 끔 (instant). It is saved in `localStorage` (validated on read; see below).
+- **Skip**: while a turn plays, the main button becomes "스킵 ▶▶" and finishes the turn instantly.
+- The engine now reports `stagger` *after* the `coinHit` that caused it, so the animation reads "hit → stagger".
+
+### Assumptions
+- The HP bar and sanity gauge are not re-rendered from final state until the animation ends. The animator drives them step by step from event values.
+- Coins use placeholder textures generated at boot under the manifest keys `ui.coin.heads / tails / broken`. Milestone 7 will load real images under the same keys.
+- Sound comes in milestone 7.
+
+### Security
+- New `src/platform/storage.ts`: every `localStorage` read is wrapped in try/catch, size-limited (256 KB), parsed and validated. Corrupted, tampered or blocked storage silently falls back to defaults. Saves in milestone 6 will use the same wrapper.

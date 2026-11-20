@@ -5,6 +5,7 @@ import {
   createUnit,
   generateOffers,
   pickEnemyDef,
+  recoverAfterBattle,
   randomSeed,
   type Rng,
   type RewardOffer,
@@ -42,6 +43,11 @@ export class RunSession {
   rewardOffers(): RewardOffer[] {
     const { data, bal } = gameContext();
     return generateOffers(data.rewards, this.player, this.rng, bal);
+  }
+
+  /** Automatic post-battle recovery. Returns HP restored. */
+  recover(): number {
+    return recoverAfterBattle(this.player, gameContext().bal);
   }
 
   claimReward(offer: RewardOffer): void {

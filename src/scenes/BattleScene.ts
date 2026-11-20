@@ -25,6 +25,8 @@ import { Button } from '../ui/Button.ts';
 import { LogPanel } from '../ui/LogPanel.ts';
 import { makePressable } from '../ui/pressable.ts';
 import { SkillCard } from '../ui/SkillCard.ts';
+import { ClashAnimator } from '../ui/ClashAnimator.ts';
+import { ANIM_SPEEDS, getSettings, updateSettings, type AnimSpeed } from '../game/settings.ts';
 import { SceneKey } from './keys.ts';
 
 const CX = GAME_WIDTH / 2;
@@ -54,6 +56,10 @@ export class BattleScene extends Phaser.Scene {
   private actionBtn!: Button;
   private log!: LogPanel;
   private overlay: Phaser.GameObjects.Container | null = null;
+  private animator!: ClashAnimator;
+  private animating = false;
+  private speedBtn!: Button;
+  private enemyPortrait!: Phaser.GameObjects.Rectangle;
 
   constructor() {
     super(SceneKey.Battle);
@@ -70,6 +76,7 @@ export class BattleScene extends Phaser.Scene {
     this.selected = null;
     this.overlay = null;
     this.cards = [];
+    this.animating = false;
 
     const enemy = run.nextEnemy();
     const { state, events } = createBattle(run.player, enemy, run.battleSeed(), bal);
@@ -79,9 +86,23 @@ export class BattleScene extends Phaser.Scene {
     this.buildLayout(run.floor);
     this.log.push(`===== ${run.floor}층: ${enemy.name}${enemy.boss ? ' (보스)' : ''} =====`, ...this.lines(events));
     this.resultText.setText(
-      `합 ${bal.battle.playerClashWinsToWin ?? '∞'}승을 하면 승리.\n` +
-        (bal.battle.enemyHpZero === 'lose' ? '단, 누구든 체력이 0이 되면 패배 — 상대를 죽이지 마라.' : '체력이 0이 된 쪽이 패배. 상대가 먼저 합 3승을 해도 패배.'),
+      bal.battle.enemyHpZero === 'lose'
+        ? '누구든 체력이 0이 되면 패배 — 상대를 죽이지 마라.'
+        : '상대의 체력을 0으로 만들면 승리.\n합에서 이기면 남은 코인으로 일방 공격한다.',
     );
+    this.animator = new ClashAnimator(this, {
+      names: this.names,
+      coinCount: (side, slot) => this.state[side].skills[slot].coinCount,
+      setHp: (side, hp, duration) => (side === 'player' ? this.playerHp : this.enemyHp).tweenHp(hp, duration),
+      setSanity: (side, value) => side === 'player' && this.sanity.setValue(value, headsChance({ hasSanity: true, sanity: value }, bal)),
+      setClashWins: (side, wins, needed) => {
+        if (needed === null) return;
+        (side === 'player' ? this.playerInfo : this.enemyStatus).setText(pips(wins, needed));
+      },
+      damageAnchor: (side) => (side === 'player' ? { x: CX, y: 1120 } : { x: 230, y: 470 }),
+      flash: (side) => this.flash(side),
+    });
+    this.animator.setSpeed(getSettings().animSpeed);
     this.refresh();
   }
 
@@ -91,8 +112,13 @@ export class BattleScene extends Phaser.Scene {
     const { bal } = gameContext();
 
     // Top bar
-    new Button(this, 140, 80, '로그', () => this.log.open(), { width: 220, height: 130, fontSize: 44 });
-    const leave = new Button(this, GAME_WIDTH - 140, 80, '포기', () => {
+    new Button(this, 125, 80, '로그', () => this.log.open(), { width: 200, height: 130, fontSize: 44 });
+    this.speedBtn = new Button(this, 345, 80, speedLabel(getSettings().animSpeed), () => this.cycleSpeed(), {
+      width: 200,
+      height: 130,
+      fontSize: 40,
+    });
+    const leave = new Button(this, GAME_WIDTH - 125, 80, '포기', () => {
       if (leave.getData('armed')) {
         setRun(null);
         this.scene.start(SceneKey.Title);
@@ -100,8 +126,8 @@ export class BattleScene extends Phaser.Scene {
       }
       leave.setData('armed', true).setText('정말?');
       this.time.delayedCall(2000, () => leave.active && leave.setData('armed', false).setText('포기'));
-    }, { width: 220, height: 130, fontSize: 44 });
-    text(this, CX, 80, 52)
+    }, { width: 200, height: 130, fontSize: 44 });
+    text(this, 690, 80, 50)
       .setOrigin(0.5)
       .setText(`${floor}층${isBossFloor(floor, bal) ? ' · 보스' : ''}`);
 
@@ -111,7 +137,7 @@ export class BattleScene extends Phaser.Scene {
     this.enemyHp = new HpBar(this, 90, 260, GAME_WIDTH - 180, 50);
     this.enemyInfo = text(this, 90, 312, 32, COLORS.textDim);
 
-    this.add.rectangle(230, 510, 280, 260, COLORS.red, 0.3).setStrokeStyle(4, COLORS.red);
+    this.enemyPortrait = this.add.rectangle(230, 510, 280, 260, COLORS.red, 0.3).setStrokeStyle(4, COLORS.red);
     text(this, 230, 510, 40).setOrigin(0.5).setText('적');
     this.add.rectangle(700, 510, 580, 260, COLORS.panel).setStrokeStyle(4, COLORS.red);
     text(this, 430, 395, 30, COLORS.textDim).setText('적의 의도');
@@ -146,6 +172,12 @@ export class BattleScene extends Phaser.Scene {
   // ---------------------------------------------------------------- render
 
   private refresh(): void {
+    this.refreshUnits();
+    this.refreshControls();
+  }
+
+  /** HP / sanity / intent. Not called while a turn is animating (the animator drives those). */
+  private refreshUnits(): void {
     const { bal } = gameContext();
     const { player: p, enemy: e } = this.state;
 
@@ -174,7 +206,12 @@ export class BattleScene extends Phaser.Scene {
       this.intentText.setText(isStaggered(e) ? '흐트러짐 — 행동 불가' : '—').setColor(COLORS.textDim);
     }
 
-    // Hand
+  }
+
+  /** Hand cards and the action button. */
+  private refreshControls(): void {
+    const { bal } = gameContext();
+    const { player: p, enemy: e } = this.state;
     const status = playerStatus(this.state);
     p.hand.forEach((slot, i) => {
       const card = this.cards[i];
@@ -183,11 +220,12 @@ export class BattleScene extends Phaser.Scene {
       const r = powerRange(sk);
       const maxDamage = maxOneSidedDamage(p, sk, sk.coinCount, e, sk.coinCount, bal);
       card.show({ skill: sk, ...r, maxDamage, canKill: maxDamage >= e.hp, killIsLoss: bal.battle.enemyHpZero === 'lose' });
-      card.setEnabled(status.canChoose && !this.state.outcome);
+      card.setEnabled(status.canChoose && !this.state.outcome && !this.animating);
       card.setSelected(this.selected === i);
     });
 
     if (this.state.outcome) this.actionBtn.setEnabled(false);
+    else if (this.animating) this.actionBtn.setText('스킵 ▶▶').setEnabled(true);
     else if (!status.canChoose) {
       this.actionBtn.setText(status.reason === 'stagger' ? '흐트러짐 — 턴 넘기기' : '패닉 — 무작위 행동').setEnabled(true);
     } else {
@@ -209,12 +247,16 @@ export class BattleScene extends Phaser.Scene {
   // ---------------------------------------------------------------- input
 
   private pick(i: number): void {
-    if (this.state.outcome || !playerStatus(this.state).canChoose) return;
+    if (this.animating || this.state.outcome || !playerStatus(this.state).canChoose) return;
     this.selected = this.selected === i ? null : i;
     this.refresh();
   }
 
   private confirm(): void {
+    if (this.animating) {
+      this.animator.skip();
+      return;
+    }
     if (this.state.outcome || this.overlay) return;
     const { bal } = gameContext();
     const status = playerStatus(this.state);
@@ -228,11 +270,37 @@ export class BattleScene extends Phaser.Scene {
     const nextTurn = events.findIndex((ev, i) => i > 0 && ev.t === 'turnStart');
     const shown = (nextTurn >= 0 ? events.slice(0, nextTurn) : events).filter((ev) => ev.t !== 'turnStart' && ev.t !== 'intent');
     const lines = this.lines(shown).map((l) => l.trim());
-    // The panel fits 9 lines; the full turn is always in the log.
-    this.resultText.setText(lines.length > 9 ? ['…', ...lines.slice(-8)].join('\n') : lines.join('\n'));
 
-    this.refresh();
-    if (this.state.outcome) this.showEnd(events.at(-1));
+    this.animating = true;
+    this.resultText.setVisible(false);
+    this.refreshControls();
+    void this.animator.play(events).then(() => {
+      if (!this.sys.isActive()) return;
+      this.animating = false;
+      this.resultText.setVisible(true);
+      // The panel fits 9 lines; the full turn is always in the log.
+      this.resultText.setText(lines.length > 9 ? ['…', ...lines.slice(-8)].join('\n') : lines.join('\n'));
+      this.refresh();
+      if (this.state.outcome) this.showEnd(events.at(-1));
+    });
+  }
+
+  private cycleSpeed(): void {
+    const cur = getSettings().animSpeed;
+    const next = ANIM_SPEEDS[(ANIM_SPEEDS.indexOf(cur) + 1) % ANIM_SPEEDS.length]!;
+    updateSettings({ animSpeed: next });
+    this.animator.setSpeed(next);
+    this.speedBtn.setText(speedLabel(next));
+  }
+
+  private flash(side: Side): void {
+    if (side === 'enemy') {
+      this.enemyPortrait.setFillStyle(0xffffff, 0.9);
+      this.time.delayedCall(90, () => this.enemyPortrait.setFillStyle(COLORS.red, 0.3));
+    } else {
+      this.playerHp.setAlpha(0.3);
+      this.time.delayedCall(90, () => this.playerHp.setAlpha(1));
+    }
   }
 
   // ---------------------------------------------------------------- end of battle
@@ -254,7 +322,13 @@ export class BattleScene extends Phaser.Scene {
     c.add(text(this, CX, 450, 44, COLORS.textDim).setOrigin(0.5).setText(reason));
 
     if (win) {
-      c.add(text(this, CX, 580, 46).setOrigin(0.5).setText('보상을 하나 고르세요'));
+      const healed = run.recover();
+      c.add(
+        text(this, CX, 560, 40, COLORS.ok)
+          .setOrigin(0.5)
+          .setText(`전투 후 회복 +${healed}  (HP ${run.player.hp}/${run.player.maxHp})`),
+      );
+      c.add(text(this, CX, 630, 46).setOrigin(0.5).setText('보상을 하나 고르세요'));
       run.rewardOffers().forEach((offer, i) => {
         const y = 800 + i * 330;
         const box = this.add.container(CX, y);
@@ -289,4 +363,8 @@ export class BattleScene extends Phaser.Scene {
       c.add([again, logBtn]);
     }
   }
+}
+
+function speedLabel(s: AnimSpeed): string {
+  return s === 'skip' ? '연출 끔' : `×${s}`;
 }

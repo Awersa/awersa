@@ -22,7 +22,11 @@ export class HpBar extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
+  private maxHp = 1;
+
   setValue(hp: number, maxHp: number, thresholds: number[], nextThreshold: number): void {
+    this.maxHp = maxHp;
+    this.scene.tweens.killTweensOf(this.fill);
     const r = maxHp > 0 ? Math.max(0, Math.min(1, hp / maxHp)) : 0;
     this.fill.width = this.barW * r;
     this.label.setText(`${hp} / ${maxHp}`);
@@ -36,6 +40,15 @@ export class HpBar extends Phaser.GameObjects.Container {
       this.markers.push(m);
       this.addAt(m, 2);
     });
+  }
+
+  /** Animated HP change during clash playback (markers are refreshed later by setValue). */
+  tweenHp(hp: number, duration: number): void {
+    const r = this.maxHp > 0 ? Math.max(0, Math.min(1, hp / this.maxHp)) : 0;
+    this.label.setText(`${hp} / ${this.maxHp}`);
+    this.scene.tweens.killTweensOf(this.fill);
+    if (duration <= 0) this.fill.width = this.barW * r;
+    else this.scene.tweens.add({ targets: this.fill, width: this.barW * r, duration, ease: 'Cubic.easeOut' });
   }
 }
 
@@ -72,6 +85,6 @@ export class SanityGauge extends Phaser.GameObjects.Container {
 
 /** ●●○ clash-win pips. */
 export function pips(wins: number, needed: number | null): string {
-  if (needed === null) return `합 승리 ${wins}`;
+  if (needed === null) return '';
   return '●'.repeat(Math.min(wins, needed)) + '○'.repeat(Math.max(0, needed - wins));
 }

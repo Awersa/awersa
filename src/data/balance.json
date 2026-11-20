@@ -42,8 +42,8 @@
     "handSize": 2
   },
   "battle": {
-    "playerClashWinsToWin": 3,
-    "enemyClashWinsToWin": 3,
+    "playerClashWinsToWin": null,
+    "enemyClashWinsToWin": null,
     "enemyHpZero": "win",
     "minHitDamage": 1
   },
@@ -55,15 +55,16 @@
     }
   },
   "floor": {
-    "hpPerFloor": 0.12,
-    "basePowerEveryFloors": 3,
-    "coinPowerEveryFloors": 5,
-    "levelPerFloor": 2,
+    "hpPerFloor": 0.08,
+    "basePowerEveryFloors": 2,
+    "coinPowerEveryFloors": 4,
+    "levelPerFloor": 1,
     "bossEvery": 5,
     "bossHpMultiplier": 1.0
   },
   "rewards": {
-    "offerCount": 3
+    "offerCount": 3,
+    "healAfterBattle": 0.3
   },
   "features": {
     "sinAndEgo": false

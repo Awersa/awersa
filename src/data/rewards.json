@@ -1,8 +1,48 @@
 [
-  { "id": "min_all", "name": "단단한 기초", "kind": "basePower", "amount": 1, "target": "all", "weight": 3 },
-  { "id": "min_one", "name": "집중 단련", "kind": "basePower", "amount": 2, "target": "one", "weight": 3 },
-  { "id": "max_all", "name": "날 선 코인", "kind": "coinPower", "amount": 1, "target": "all", "weight": 2 },
-  { "id": "max_one", "name": "결정타 연마", "kind": "coinPower", "amount": 2, "target": "one", "weight": 3 },
-  { "id": "heal", "name": "응급 처치", "kind": "heal", "amount": 0.35, "weight": 3 },
-  { "id": "max_hp", "name": "강인함", "kind": "maxHp", "amount": 20, "weight": 2 }
+  {
+    "id": "min_all",
+    "name": "단단한 기초",
+    "kind": "basePower",
+    "amount": 1,
+    "target": "all",
+    "weight": 3
+  },
+  {
+    "id": "min_one",
+    "name": "집중 단련",
+    "kind": "basePower",
+    "amount": 2,
+    "target": "one",
+    "weight": 3
+  },
+  {
+    "id": "max_all",
+    "name": "날 선 코인",
+    "kind": "coinPower",
+    "amount": 1,
+    "target": "all",
+    "weight": 2
+  },
+  {
+    "id": "max_one",
+    "name": "결정타 연마",
+    "kind": "coinPower",
+    "amount": 2,
+    "target": "one",
+    "weight": 3
+  },
+  {
+    "id": "heal",
+    "name": "응급 처치",
+    "kind": "heal",
+    "amount": 0.35,
+    "weight": 3
+  },
+  {
+    "id": "max_hp",
+    "name": "강인함",
+    "kind": "maxHp",
+    "amount": 20,
+    "weight": 2
+  }
 ]

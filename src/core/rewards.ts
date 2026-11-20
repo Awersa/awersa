@@ -88,3 +88,10 @@ export function applyReward(unit: UnitState, offer: RewardOffer): void {
       return;
   }
 }
+
+/** Automatic recovery after a won battle (balance.rewards.healAfterBattle × max HP). */
+export function recoverAfterBattle(unit: UnitState, bal: Balance): number {
+  const before = unit.hp;
+  unit.hp = Math.min(unit.maxHp, unit.hp + Math.round(unit.maxHp * Math.max(0, bal.rewards.healAfterBattle)));
+  return unit.hp - before;
+}

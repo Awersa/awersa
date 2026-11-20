@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import {
   applyReward,
+  recoverAfterBattle,
   createBattle,
   createEnemyForFloor,
   createRng,
@@ -27,6 +28,7 @@ import {
   type BattleState,
   type GameData,
   type Rng,
+  type RewardOffer,
   type UnitState,
 } from '../src/core/index.ts';
 
@@ -120,34 +122,52 @@ for (const pd of data.players) {
   }
 }
 
-console.log(`\n[무한 모드 런] (N=${N}, 똑똑한 선택, 보상은 무작위 선택, HP 이어짐)`);
-for (const pd of data.players) {
-  const reached: number[] = [];
-  let firstLoss = 0;
-  const lossBy = { hp: 0, kill: 0, clashWins: 0 };
-  for (let i = 0; i < N; i++) {
-    const rng = createRng(1000 + i);
-    const player = createUnit(pd, skills, 'player', bal);
-    let floor = 1;
-    for (;;) {
-      const enemy = createEnemyForFloor(pickEnemyDef(data.enemies, floor, rng, bal), skills, floor, bal);
-      const s = fight(player, enemy, rng.int(0, 2 ** 31), smartPolicy);
-      if (s.outcome === 'lose') {
-        if (s.player.hp <= 0) lossBy.hp++;
-        else if (s.enemy.hp <= 0) lossBy.kill++;
-        else lossBy.clashWins++;
-        break;
-      }
-      applyReward(player, rng.pick(generateOffers(data.rewards, player, rng, bal)));
-      floor++;
-      if (floor > 200) break;
+type RewardPolicy = (offers: RewardOffer[], p: UnitState) => RewardOffer;
+const randomReward = (rng: Rng): RewardPolicy => (offers) => rng.pick(offers);
+/** Heals when low; otherwise takes the biggest expected power gain. */
+const smartReward: RewardPolicy = (offers, p) => {
+  const score = (o: RewardOffer): number => {
+    const hpRatio = p.hp / p.maxHp;
+    switch (o.kind) {
+      case 'heal': return hpRatio < 0.5 ? 100 : hpRatio < 0.75 ? 6 : 0;
+      case 'maxHp': return 3 + (1 - hpRatio) * 4;
+      case 'basePower': return o.amount * o.slots.length * 1.6;
+      case 'coinPower': return o.amount * o.slots.length * 1.2;
     }
-    if (floor === 1) firstLoss++;
-    reached.push(floor);
+  };
+  return offers.reduce((a, b) => (score(b) > score(a) ? b : a));
+};
+
+function endless(pd: (typeof data.players)[number], seed: number, pickReward: (rng: Rng) => RewardPolicy) {
+  const rng = createRng(seed);
+  const player = createUnit(pd, skills, 'player', bal);
+  const policy = pickReward(rng);
+  let floor = 1;
+  for (;;) {
+    const enemy = createEnemyForFloor(pickEnemyDef(data.enemies, floor, rng, bal), skills, floor, bal);
+    const s = fight(player, enemy, rng.int(0, 2 ** 31), smartPolicy);
+    if (s.outcome === 'lose') return { floor, byHp: s.player.hp <= 0 };
+    recoverAfterBattle(player, bal);
+    applyReward(player, policy(generateOffers(data.rewards, player, rng, bal), player));
+    floor++;
+    if (floor > 200) return { floor, byHp: false };
   }
-  reached.sort((a, b) => a - b);
-  const q = (p: number) => reached[Math.floor(p * (reached.length - 1))];
-  const avg = reached.reduce((a, b) => a + b, 0) / reached.length;
-  const bossClear = reached.filter((f) => f > bal.floor.bossEvery).length / N;
-  console.log(`  ${pd.name}: 1층 패배 ${pct(firstLoss / N)} | 도달 층 평균 ${avg.toFixed(1)} · 중앙값 ${q(0.5)} · 상위10% ${q(0.9)} · 최고 ${reached.at(-1)} | 첫 보스 돌파 ${pct(bossClear)} | 패배 원인: 내 체력 ${pct(lossBy.hp / N)}${bal.battle.enemyHpZero === 'lose' ? ` · 상대 사망 ${pct(lossBy.kill / N)}` : ''} · 합 패배 ${pct(lossBy.clashWins / N)}`);
+}
+
+console.log(`\n[무한 모드 런] (N=${N}, 전투는 똑똑한 선택, HP 이어짐)`);
+for (const pd of data.players) {
+  for (const [label, rp] of [['보상 잘 고름', () => smartReward], ['보상 무작위', randomReward]] as const) {
+    const reached: number[] = [];
+    let firstLoss = 0;
+    for (let i = 0; i < N; i++) {
+      const r = endless(pd, 1000 + i, rp);
+      if (r.floor === 1) firstLoss++;
+      reached.push(r.floor);
+    }
+    reached.sort((a, b) => a - b);
+    const q = (p: number) => reached[Math.floor(p * (reached.length - 1))];
+    const avg = reached.reduce((a, b) => a + b, 0) / reached.length;
+    const boss = (k: number) => pct(reached.filter((f) => f > bal.floor.bossEvery * k).length / N);
+    console.log(`  ${pd.name} [${label}]: 1층 패배 ${pct(firstLoss / N)} | 도달 층 평균 ${avg.toFixed(1)} · 중앙값 ${q(0.5)} · 상위10% ${q(0.9)} · 최고 ${reached.at(-1)} | 5층 보스 돌파 ${boss(1)} · 10층 ${boss(2)}`);
+  }
 }

@@ -176,7 +176,7 @@
     "damageType": "slash",
     "sin": "pride",
     "basePower": 4,
-    "coinPower": 3,
+    "coinPower": 2,
     "coinCount": 3
   },
   {
@@ -185,7 +185,7 @@
     "type": "attack",
     "damageType": "pierce",
     "sin": "pride",
-    "basePower": 6,
+    "basePower": 5,
     "coinPower": 3,
     "coinCount": 3
   },
@@ -195,7 +195,7 @@
     "type": "attack",
     "damageType": "blunt",
     "sin": "gloom",
-    "basePower": 5,
+    "basePower": 4,
     "coinPower": 5,
     "coinCount": 3
   }

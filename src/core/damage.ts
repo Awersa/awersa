@@ -83,8 +83,9 @@ export function oneSidedAttack(
     if (heads) power += skill.coinPower;
     const hitPower = Math.max(0, power);
     const dmg = computeDamage({ power: hitPower, skill, attacker, target, clashCount }, bal);
-    applyDamage(target, dmg, bal, events);
-    events.push({ t: 'coinHit', attacker: attacker.side, coin: c, heads, power: hitPower, damage: dmg, targetHp: target.hp });
+    const after: BattleEvent[] = []; // stagger is reported after the hit that caused it
+    applyDamage(target, dmg, bal, after);
+    events.push({ t: 'coinHit', attacker: attacker.side, coin: c, heads, power: hitPower, damage: dmg, targetHp: target.hp }, ...after);
   }
 }
 
