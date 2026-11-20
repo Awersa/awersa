@@ -90,7 +90,7 @@ const smartPolicy: Policy = (s) => {
   return best.i;
 };
 let useDefense = true;
-const defenseMargin = 3;
+const defenseMargin = Number(process.env.DEF_MARGIN ?? 3);
 /** Rough power-equivalent of a passive gift for the smart reward policy. */
 const giftValue = 1.2;
 

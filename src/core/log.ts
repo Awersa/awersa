@@ -53,6 +53,10 @@ export function formatEvent(e: BattleEvent, names: Record<Side, string>): string
       return `  ${who(e.side, names)} 회피 ${coins(e.heads)} ${e.power} vs ${e.attackPower} → ${e.success ? '회피 성공!' : '회피 실패'}`;
     case 'counter':
       return `  ${who(e.side, names)} 반격! (${e.skill})`;
+    case 'perfectGuard':
+      return `  ${who(e.side, names)} 완벽한 수비!`;
+    case 'guardRetaliate':
+      return `  ${who(e.side, names)} 남은 보호막으로 반격 → 피해 ${e.damage} (남은 HP ${e.targetHp})`;
     case 'defenseUnused':
       return `  ${who(e.side, names)} ${e.skill} — 공격이 없어 무의미`;
     case 'statusApply':

@@ -304,3 +304,18 @@ First-floor loss stays at about 6–8%.
 | 도담 | 5% | 48% | 7% / 4% / 0.4% | 24 |
 
 - The simulator values a gift at a flat ~1.2 power, which is rough. Real players will judge gifts better, so expect human results to beat these numbers.
+
+## Guard rework (user request; recommendation 1 + 3)
+- **Shield** = guard power × **2.0** (was 1.5).
+- **Leftover shield is dealt back**: if shield remains after the incoming attack, attacker takes `leftover × 1.0` damage (`defense.guardRetaliateMultiplier`). It can stagger.
+- **Perfect guard**: if every hit that reached the guard was fully absorbed, the guarder gains **+10 sanity** (`defense.perfectGuardSanity`).
+- **A fully absorbed hit carries no on-hit effects**: no bleed/rupture/etc. from that coin, and no `hitTaken` status triggers (rupture, sinking).
+- Enemies that guard (경비 인형) get the same rules.
+- Measured for 도담 (guard user), sim defending when the enemy's attack outclasses its best card by ≥1, N=2000:
+
+| | 1층 패배 | 5층 보스 돌파 | 10층 |
+|---|---|---|---|
+| never defend | 6.0% | 46.8% | 7.8% |
+| defend (shield ×2.0) | 3.0% | 50.1% | 7.0% |
+
+  Guard is now a real option: it clearly helps early and against the boss's big turns, without being always correct. Evade (한결) is unchanged; its value is sanity gain, not damage.

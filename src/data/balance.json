@@ -73,8 +73,10 @@
     "sinAndEgo": false
   },
   "defense": {
-    "guardShieldMultiplier": 1.5,
-    "evadeSanity": 5
+    "guardShieldMultiplier": 2.0,
+    "evadeSanity": 5,
+    "guardRetaliateMultiplier": 1.0,
+    "perfectGuardSanity": 10
   },
   "status": {
     "critMultiplier": 1.2,

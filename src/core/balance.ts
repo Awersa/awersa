@@ -36,6 +36,10 @@ export interface Balance {
     guardShieldMultiplier: number;
     /** Sanity gained per successful evade. */
     evadeSanity: number;
+    /** Leftover guard shield × this is dealt back to the attacker. 0 disables. */
+    guardRetaliateMultiplier: number;
+    /** Sanity gained when a guard absorbs every hit. */
+    perfectGuardSanity: number;
   };
   status: {
     critMultiplier: number;

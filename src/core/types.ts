@@ -214,6 +214,9 @@ export type BattleEvent =
   | { t: 'guard'; side: Side; skill: string; heads: boolean[]; shield: number }
   | { t: 'evade'; side: Side; heads: boolean[]; power: number; attackPower: number; success: boolean }
   | { t: 'counter'; side: Side; skill: string }
+  | { t: 'perfectGuard'; side: Side }
+  /** Leftover guard shield dealt back to the attacker; `side` is the guarder. */
+  | { t: 'guardRetaliate'; side: Side; damage: number; targetHp: number }
   | { t: 'defenseUnused'; side: Side; skill: string }
   | { t: 'statusApply'; side: Side; status: StatusId; potency: number; count: number }
   | { t: 'statusTrigger'; side: Side; status: StatusId; action: StatusAction; amount: number; hp: number }

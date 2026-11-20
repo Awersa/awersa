@@ -174,6 +174,18 @@ export class ClashAnimator {
         this.float(ev.success ? '회피!' : '회피 실패', a.x, a.y - 40, ev.success ? '#9fd0ff' : '#ff9a8a', 52);
         return this.wait(ev.success ? 420 : 260);
       }
+      case 'perfectGuard':
+        this.banner(`${this.hooks.names[ev.side]} 완벽한 수비!`, '#9fd0ff', 60);
+        return this.wait(500);
+      case 'guardRetaliate': {
+        const target: Side = ev.side === 'player' ? 'enemy' : 'player';
+        const a = this.hooks.damageAnchor(target);
+        this.hooks.setHp(target, ev.targetHp, this.ms(260));
+        this.hooks.flash(target);
+        this.float(`보호막 반격 -${ev.damage}`, a.x, a.y, '#9fd0ff', 56);
+        this.shake(Math.min(0.02, 0.004 + ev.damage / 1500), 160);
+        return this.wait(450);
+      }
       case 'counter':
         this.banner(`${this.hooks.names[ev.side]} 반격!`, '#ffb36b', 60);
         return this.wait(450);

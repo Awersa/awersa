@@ -156,9 +156,36 @@ describe('defense skills', () => {
     const { b, state, player } = setup({ type: 'guard', basePower: 8, coinPower: 0, coinCount: 1 });
     expect(playerStatus(state).canDefend).toBe(true);
     const ev = takeTurn(state, 'defense', b);
-    const g = ev.find((e) => e.t === 'guard');
-    expect(g).toMatchObject({ shield: 12 }); // 8 × 1.5
-    expect(player.hp).toBe(999 - (20 - 12));
+    const shield = Math.floor(8 * b.defense.guardShieldMultiplier);
+    expect(ev.find((e) => e.t === 'guard')).toMatchObject({ shield });
+    expect(player.hp).toBe(999 - Math.max(0, 20 - shield));
+  });
+
+  it('perfect guard: leftover shield is dealt back and sanity is restored', () => {
+    // attacker 2 coins × 10 = 20 damage; shield 40 × multiplier, the rest is dealt back
+    const { b, state, player, enemy } = setup({ type: 'guard', basePower: 40, coinPower: 0, coinCount: 1 });
+    const ev = takeTurn(state, 'defense', b);
+    const left = Math.floor(Math.floor(40 * b.defense.guardShieldMultiplier) - 20) * b.defense.guardRetaliateMultiplier;
+    expect(player.hp).toBe(999);
+    expect(ev.some((e) => e.t === 'perfectGuard')).toBe(true);
+    expect(player.sanity).toBe(b.defense.perfectGuardSanity);
+    expect(ev.find((e) => e.t === 'guardRetaliate')).toMatchObject({ damage: left });
+    expect(enemy.hp).toBe(999 - left);
+  });
+
+  it('a hit fully absorbed by a guard applies no on-hit effects', () => {
+    const { b, state, player } = setup(
+      { type: 'guard', basePower: 40, coinPower: 0, coinCount: 1 },
+      { basePower: 10, coinPower: 0, coinCount: 2, coinEffects: [[{ type: 'apply', status: 'bleed', potency: 3, count: 3 }], []] },
+    );
+    takeTurn(state, 'defense', b);
+    expect(player.statuses.bleed).toBeUndefined();
+  });
+
+  it('a broken guard gives no bonus and no retaliation', () => {
+    const { b, state } = setup({ type: 'guard', basePower: 2, coinPower: 0, coinCount: 1 });
+    const ev = takeTurn(state, 'defense', b);
+    expect(ev.some((e) => e.t === 'perfectGuard' || e.t === 'guardRetaliate')).toBe(false);
   });
 
   it('evade: winning nullifies the coin and restores sanity; losing ends the evade', () => {
