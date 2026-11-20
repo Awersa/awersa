@@ -90,6 +90,15 @@ export const RECIPES: Record<string, Recipe> = {
 
   // 'sfx.clash.win': intentionally silent (user's choice) — the coin sounds carry the moment.
 
+  // weapons meeting: short, bright metallic "챙" (same family as the coin sounds)
+  'sfx.clash.impact': (c, o, t, v) => {
+    const p = 0.97 + Math.random() * 0.06;
+    tone(c, o, t, { type: 'sine', f0: 2349 * p, dur: 0.28, gain: 0.16 * v, attack: 0.001 });
+    tone(c, o, t, { type: 'sine', f0: 3520 * p, dur: 0.22, gain: 0.14 * v, attack: 0.001 });
+    tone(c, o, t, { type: 'sine', f0: 5274 * p, dur: 0.12, gain: 0.08 * v, attack: 0.001 });
+    noise(c, o, t, { filter: 'highpass', f0: 6000, dur: 0.03, gain: 0.25 * v, attack: 0.001 });
+  },
+
   'sfx.clash.lose': (c, o, t, v) => {
     tone(c, o, t, { type: 'square', f0: 330, f1: 196, dur: 0.32, gain: 0.12 * v });
     tone(c, o, t, { type: 'sine', f0: 165, f1: 98, dur: 0.35, gain: 0.2 * v });

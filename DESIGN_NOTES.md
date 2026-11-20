@@ -391,3 +391,25 @@ First-floor loss stays at about 6–8%.
   - Particle bursts are ≤ 16 particles and < 1 s, and destroy themselves.
   - "연출 끔" skips all of it.
   - OS "reduce motion" disables shakes, flashes, knockback and card motion.
+
+## Clash stage: fighters exchanging blows (user request)
+- The clash animation now plays on a small **stage** inside the result panel. The player fighter stands on the left, the enemy on the right, facing each other. Coins, power numbers and the skill name float above each fighter.
+- **Clash round**:
+  - coins hop/flip and powers count up
+  - both fighters **dash to the center** and swing; weapons meet with sparks, a short shake and a bright metallic "챙" (`sfx.clash.impact`, same family as the user's chosen coin sounds)
+  - the loser is **knocked back** and loses a coin (shards) while the winner returns
+  - ties bounce both back; multi-round clashes repeat the exchange
+- **One-sided attack**:
+  - the winner **rushes the target** and swings once per coin: a slash arc for slash, a thrust line for pierce, an impact ring for blunt
+  - each hit has hit-stop, particles and a damage number at chest height, and makes the target reel a step while the attacker follows up
+  - the **last coin launches** the target further back; then both walk home
+- **Defense on stage**:
+  - guard: the guarder raises its weapon and crouches
+  - evade: the evader hops back out of the swing, and the attacker swings at air
+  - perfect guard and shield retaliation animate on the fighters
+- **Stagger**: the fighter drops to one knee (tilted, squashed, weapon lowered) and stays that way while staggered. Fighters start each turn in the stance they had before it.
+- **Art**:
+  - With no images, fighters are drawn silhouettes (coat, head, legs) with a weapon matching their main damage type: slash → sword, pierce → spear, blunt → hammer.
+  - When `char.*`/`enemy.*` idle/attack images exist, those images are used instead. Art should face right; the enemy is mirrored. They switch to the attack image while striking.
+- Idle breathing bob. All fighter motion is skipped in "연출 끔", and shakes/flashes respect OS reduce-motion.
+- This mirrors the *idea* of Limbus-style exchanges (dash, clash, follow-up combo) with original drawings and motion; no assets or designs were copied.

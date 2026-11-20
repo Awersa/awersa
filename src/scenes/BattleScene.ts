@@ -70,6 +70,8 @@ export class BattleScene extends Phaser.Scene {
   private newBest = false;
   /** What each side used this turn (for hit sounds). */
   private turnSlots: Partial<Record<Side, SkillSlot | 'defense'>> = {};
+  /** Stagger state at the start of the animating turn (fighters start in that stance). */
+  private staggeredBefore: Record<Side, boolean> = { player: false, enemy: false };
   private animating = false;
   private speedBtn!: Button;
   private enemyPortrait!: Portrait;
@@ -128,7 +130,6 @@ export class BattleScene extends Phaser.Scene {
         if (needed === null) return;
         (side === 'player' ? this.playerInfo : this.enemyStatus).setText(pips(wins, needed));
       },
-      damageAnchor: (side) => (side === 'player' ? { x: CX, y: 1120 } : { x: 230, y: 470 }),
       flash: (side) => this.flash(side),
       sfx: (key) => sfx(this, key),
       damageType: (side) => {
@@ -146,6 +147,15 @@ export class BattleScene extends Phaser.Scene {
         }
       },
       setStaggered: (side, on) => (side === 'enemy' ? this.enemyPortrait.setStaggered(on) : this.setPlayerStaggerLook(on)),
+      fighter: (side) => {
+        const u = this.state[side];
+        const dt = u.skills.S1.damageType;
+        return {
+          weapon: dt === 'pierce' ? 'spear' : dt === 'blunt' ? 'hammer' : 'sword',
+          ...(u.asset ? { asset: u.asset } : {}),
+          staggered: this.staggeredBefore[side],
+        };
+      },
     });
     this.animator.setSpeed(getSettings().animSpeed);
     this.refresh();
@@ -386,6 +396,7 @@ export class BattleScene extends Phaser.Scene {
     const { bal } = gameContext();
     const status = playerStatus(this.state);
     if (status.canChoose && this.selected === null) return;
+    this.staggeredBefore = { player: isStaggered(this.state.player), enemy: isStaggered(this.state.enemy) };
     const events = takeTurn(this.state, status.canChoose ? this.selected : null, bal);
     this.turnSlots = {};
     for (const ev of events) if (ev.t === 'skillUse' && !this.turnSlots[ev.side]) this.turnSlots[ev.side] = ev.slot;

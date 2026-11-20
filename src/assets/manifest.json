@@ -4,12 +4,10 @@
     "bg.title": "images/bg_title.png",
     "bg.battle": "images/bg_battle.png",
     "bg.boss": "images/bg_boss.png",
-
     "char.hangyeol.idle": "images/hangyeol_idle.png",
     "char.hangyeol.attack": "images/hangyeol_attack.png",
     "char.dodam.idle": "images/dodam_idle.png",
     "char.dodam.attack": "images/dodam_attack.png",
-
     "enemy.thug.idle": "images/enemy_thug_idle.png",
     "enemy.thug.attack": "images/enemy_thug_attack.png",
     "enemy.rust.idle": "images/enemy_rust_idle.png",
@@ -18,7 +16,6 @@
     "enemy.hound.attack": "images/enemy_hound_attack.png",
     "enemy.keeper.idle": "images/enemy_keeper_idle.png",
     "enemy.keeper.attack": "images/enemy_keeper_attack.png",
-
     "ui.coin.heads": "images/coin_heads.png",
     "ui.coin.tails": "images/coin_tails.png",
     "ui.coin.broken": "images/coin_broken.png"
@@ -27,7 +24,6 @@
     "bgm.title": "sounds/bgm_title.ogg",
     "bgm.battle": "sounds/bgm_battle.ogg",
     "bgm.boss": "sounds/bgm_boss.ogg",
-
     "sfx.ui.tap": "sounds/ui_tap.ogg",
     "sfx.coin.flip": "sounds/coin_flip.ogg",
     "sfx.coin.break": "sounds/coin_break.ogg",
@@ -42,6 +38,7 @@
     "sfx.stagger": "sounds/stagger.ogg",
     "sfx.status": "sounds/status.ogg",
     "sfx.victory": "sounds/victory.ogg",
-    "sfx.defeat": "sounds/defeat.ogg"
+    "sfx.defeat": "sounds/defeat.ogg",
+    "sfx.clash.impact": "sounds/clash_impact.ogg"
   }
 }

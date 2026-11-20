@@ -31,7 +31,7 @@
 
 - 초상은 상자(280×260)에 **비율 유지하며 맞춰** 들어갑니다. 정사각형이면 가장 깔끔합니다.
 - 코인은 72px 정도로 그려지므로 128×128이면 충분합니다.
-- 캐릭터 이미지는 현재 타이틀/전투에 자리가 없어 **예약된 슬롯**입니다 (적 초상과 코인은 바로 쓰입니다).
+- 캐릭터 이미지(`char.*`, `enemy.*`의 idle/attack)는 **합 무대에서 직접 움직이는 전투원**으로 쓰입니다. 그림은 **오른쪽을 보도록** 그려 주세요(적은 자동으로 좌우 반전). 높이 220px 정도로 맞춰 그려지며, 발이 그림 아래쪽 끝에 오게 하면 됩니다.
 
 ## 사운드
 
@@ -42,6 +42,7 @@
 | `bgm.boss` | `sounds/bgm_boss.ogg` | 루프 1~3분 | 보스전 |
 | `sfx.ui.tap` | `sounds/ui_tap.ogg` | < 0.2초 | 모든 버튼 탭 |
 | `sfx.coin.flip` | `sounds/coin_flip.ogg` | < 0.3초 | 코인 뒤집기 |
+| `sfx.clash.impact` | `sounds/clash_impact.ogg` | < 0.4초 | 합에서 무기가 부딪힐 때 |
 | `sfx.coin.break` | `sounds/coin_break.ogg` | < 0.5초 | 합에서 코인 파괴 |
 | `sfx.clash.win` | `sounds/clash_win.ogg` | < 1초 | 내가 합 승리 |
 | `sfx.clash.lose` | `sounds/clash_lose.ogg` | < 1초 | 내가 합 패배 |

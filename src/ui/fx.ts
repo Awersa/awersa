@@ -118,3 +118,36 @@ export function burst(scene: Phaser.Scene, kind: BurstKind, x: number, y: number
   emitter.explode(Math.max(1, Math.round(p.count * scaleCount)));
   scene.time.delayedCall(p.life + 120, () => emitter.destroy());
 }
+
+/** Weapon trail at a strike point: slash arc, thrust line or impact ring. `dir` = attacker facing. */
+export function strikeTrail(scene: Phaser.Scene, kind: 'slash' | 'pierce' | 'blunt', x: number, y: number, dir: 1 | -1, ms: number): void {
+  const g = scene.add.graphics().setDepth(465).setPosition(x, y);
+  if (kind === 'slash') {
+    g.lineStyle(10, 0xffffff, 1);
+    g.beginPath();
+    g.arc(0, 0, 90, Phaser.Math.DegToRad(dir > 0 ? -150 : -30), Phaser.Math.DegToRad(dir > 0 ? 10 : 190), dir < 0);
+    g.strokePath();
+    g.lineStyle(4, 0xffd9d0, 1);
+    g.beginPath();
+    g.arc(0, 0, 76, Phaser.Math.DegToRad(dir > 0 ? -140 : -40), Phaser.Math.DegToRad(dir > 0 ? 0 : 180), dir < 0);
+    g.strokePath();
+    g.setAngle(Phaser.Math.Between(-20, 20));
+  } else if (kind === 'pierce') {
+    g.lineStyle(8, 0xfff2a8, 1);
+    g.lineBetween(-130 * dir, 0, 70 * dir, 0);
+    g.fillStyle(0xffffff, 1);
+    g.fillTriangle(70 * dir, -10, 70 * dir, 10, 100 * dir, 0);
+    g.setAngle(Phaser.Math.Between(-12, 12));
+  } else {
+    g.lineStyle(10, 0xe8d8c0, 1);
+    g.strokeCircle(0, 0, 30);
+  }
+  scene.tweens.add({
+    targets: g,
+    alpha: 0,
+    scale: kind === 'blunt' ? 3 : 1.15,
+    duration: Math.max(120, ms),
+    ease: 'Cubic.easeOut',
+    onComplete: () => g.destroy(),
+  });
+}
