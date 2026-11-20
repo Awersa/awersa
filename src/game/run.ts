@@ -4,6 +4,7 @@ import {
   createRng,
   createUnit,
   generateOffers,
+  isBossFloor,
   pickEnemyDef,
   recoverAfterBattle,
   randomSeed,
@@ -42,7 +43,7 @@ export class RunSession {
 
   rewardOffers(): RewardOffer[] {
     const { data, bal } = gameContext();
-    return generateOffers(data.rewards, this.player, this.rng, bal);
+    return generateOffers(data.rewards, this.player, this.rng, bal, isBossFloor(this.floor, bal));
   }
 
   /** Automatic post-battle recovery. Returns HP restored. */
@@ -51,7 +52,7 @@ export class RunSession {
   }
 
   claimReward(offer: RewardOffer): void {
-    applyReward(this.player, offer);
+    applyReward(this.player, offer, gameContext().bal);
     this.kills++;
     this.floor++;
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createEnemyForFloor, isBossFloor, pickEnemyDef } from '../src/core/floor.ts';
-import { applyReward, generateOffers, recoverAfterBattle, type RewardOffer } from '../src/core/rewards.ts';
+import { applyReward, describeOffer, generateOffers, recoverAfterBattle, type RewardDef, type RewardOffer } from '../src/core/rewards.ts';
 import { createRng } from '../src/core/rng.ts';
 import { effectiveSkill, powerRange } from '../src/core/skill.ts';
 import { createUnit, indexSkills } from '../src/core/unit.ts';
@@ -99,5 +99,104 @@ describe('data validation', () => {
     const d = data() as unknown as Record<"skills" | "players" | "enemies" | "rewards", unknown[]>;
     (d.players[0] as Record<string, unknown>).skills = { S1: '__proto__', S2: 'hk_s2', S3: 'hk_s3' };
     expect(validateGameData(d).some((e) => e.includes('unknown skill __proto__'))).toBe(true);
+  });
+});
+
+describe('boss coin reward & before/after text', () => {
+  const offer = (o: Partial<RewardOffer>): RewardOffer => ({ defId: 'x', name: 'x', kind: 'coinCount', amount: 1, slots: ['S1'], description: '', ...o });
+
+  it('adds a coin, respecting maxCoinCount', () => {
+    const b = bal();
+    b.rewards.maxCoinCount = 3;
+    const u = makeUnit('player', { basePower: 4, coinPower: 3, coinCount: 2 });
+    applyReward(u, offer({}), b);
+    expect(effectiveSkill(u, 'S1').coinCount).toBe(3);
+    expect(powerRange(effectiveSkill(u, 'S1'))).toEqual({ min: 4, max: 13 });
+    applyReward(u, offer({}), b); // capped
+    expect(effectiveSkill(u, 'S1').coinCount).toBe(3);
+  });
+
+  it('extra coins are used in battle (one more hit)', async () => {
+    const { createBattle, takeTurn } = await import('../src/core/battle.ts');
+    const b = bal();
+    const p = makeUnit('player', { basePower: 5, coinPower: 0, coinCount: 1 }, { maxHp: 9999 });
+    const e = makeUnit('enemy', { basePower: 1, coinPower: 0, coinCount: 1 }, { maxHp: 9999, staggerThresholds: [] });
+    for (const s of ['S1', 'S2', 'S3'] as const) p.skillMods[s] = { basePower: 0, coinPower: 0, coinCount: 2 };
+    const { state } = createBattle(p, e, 1, b);
+    const ev = takeTurn(state, 0, b);
+    expect(ev.filter((x) => x.t === 'coinHit' && x.attacker === 'player')).toHaveLength(3);
+  });
+
+  const coinDef: RewardDef = { id: 'coin_add', name: '코인 주조', kind: 'coinCount', amount: 1, target: 'one', weight: 0, bossOnly: true, chance: 1 };
+
+  it('boss-only rewards never appear outside boss floors', () => {
+    const d = data();
+    const b = bal();
+    const u = createUnit(d.players[0]!, indexSkills(d.skills), 'player', b);
+    for (let s = 0; s < 100; s++) {
+      expect(generateOffers([...d.rewards, coinDef], u, createRng(s), b, false).some((o) => o.special)).toBe(false);
+    }
+  });
+
+  it('after a boss, a chance-1 reward always replaces one offer; chance-0 never', () => {
+    const d = data();
+    const b = bal();
+    const u = createUnit(d.players[0]!, indexSkills(d.skills), 'player', b);
+    const pool = d.rewards.filter((r) => !r.bossOnly);
+    for (let s = 0; s < 50; s++) {
+      const offers = generateOffers([...pool, coinDef], u, createRng(s), b, true);
+      expect(offers).toHaveLength(b.rewards.offerCount);
+      expect(offers.filter((o) => o.special)).toHaveLength(1);
+      expect(generateOffers([...pool, { ...coinDef, chance: 0 }], u, createRng(s), b, true).some((o) => o.special)).toBe(false);
+    }
+  });
+
+  it('shipped coin reward appears after roughly `chance` of boss fights', () => {
+    const d = data();
+    const b = bal();
+    const u = createUnit(d.players[0]!, indexSkills(d.skills), 'player', b);
+    const chance = d.rewards.find((r) => r.bossOnly)!.chance!;
+    let hits = 0;
+    for (let s = 0; s < 4000; s++) if (generateOffers(d.rewards, u, createRng(s), b, true).some((o) => o.special)) hits++;
+    expect(hits / 4000).toBeGreaterThan(chance - 0.04);
+    expect(hits / 4000).toBeLessThan(chance + 0.04);
+  });
+
+  it('describes before → after', () => {
+    const b = bal();
+    const u = makeUnit('player', { basePower: 5, coinPower: 3, coinCount: 2 });
+    expect(describeOffer({ defId: 'x', name: 'x', kind: 'basePower', amount: 1, slots: ['S1'] }, u, b)).toContain('5~11 → 6~12');
+    expect(describeOffer({ defId: 'x', name: 'x', kind: 'coinPower', amount: 1, slots: ['S1'] }, u, b)).toContain('5~11 → 5~13');
+    expect(describeOffer({ defId: 'x', name: 'x', kind: 'coinCount', amount: 1, slots: ['S1'] }, u, b)).toContain('코인 2→3개');
+    u.hp = 50;
+    expect(describeOffer({ defId: 'x', name: 'x', kind: 'heal', amount: 0.35, slots: [] }, u, b)).toContain('HP 50 → 85');
+    expect(u.hp).toBe(50); // description must not mutate the unit
+  });
+});
+
+describe('reward pool hygiene', () => {
+  it('never offers a heal at full HP', () => {
+    const d = data();
+    const b = bal();
+    const u = createUnit(d.players[0]!, indexSkills(d.skills), 'player', b);
+    for (let s = 0; s < 200; s++) {
+      const offers = generateOffers(d.rewards, u, createRng(s), b);
+      expect(offers.some((o) => o.kind === 'heal')).toBe(false);
+      expect(offers).toHaveLength(b.rewards.offerCount);
+    }
+  });
+});
+
+describe('accelerating floor growth', () => {
+  it('extra base power grows with the square of the floor', () => {
+    const b = bal();
+    b.floor.basePowerEveryFloors = 0;
+    b.floor.coinPowerEveryFloors = 0;
+    b.floor.basePowerAccelDivisor = 60;
+    const d = data();
+    const sk = indexSkills(d.skills);
+    const def = d.enemies.find((e) => !e.boss)!;
+    const mod = (f: number) => createEnemyForFloor(def, sk, f, b).skillMods.S1?.basePower ?? 0;
+    expect([mod(1), mod(9), mod(11), mod(21), mod(31)]).toEqual([0, 1, 1, 6, 15]);
   });
 });

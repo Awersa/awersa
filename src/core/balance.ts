@@ -36,6 +36,8 @@ export interface Balance {
     basePowerEveryFloors: number;
     coinPowerEveryFloors: number;
     levelPerFloor: number;
+    /** Accelerating growth: extra base power = floor((floor-1)² / this). 0 disables. Keeps endless runs finite. */
+    basePowerAccelDivisor: number;
     bossEvery: number;
     bossHpMultiplier: number;
   };
@@ -43,6 +45,8 @@ export interface Balance {
     offerCount: number;
     /** HP ratio of max HP recovered automatically after every won battle. */
     healAfterBattle: number;
+    /** Coin-count rewards never raise a skill above this many coins. */
+    maxCoinCount: number;
   };
   features: { sinAndEgo: boolean };
 }

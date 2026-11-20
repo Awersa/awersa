@@ -98,8 +98,11 @@ export function validateReward(r: unknown, where: string): string[] {
   if (!isOneOf(r.kind, REWARD_KINDS)) e.push(`${where}: bad kind`);
   if (!isNum(r.amount, 0, 9999)) e.push(`${where}: bad amount`);
   if (r.kind === 'heal' && !isNum(r.amount, 0, 1)) e.push(`${where}: heal amount is a ratio 0..1`);
-  if ((r.kind === 'basePower' || r.kind === 'coinPower' || r.kind === 'maxHp') && !isInt(r.amount))
+  if ((r.kind === 'basePower' || r.kind === 'coinPower' || r.kind === 'coinCount' || r.kind === 'maxHp') && !isInt(r.amount))
     e.push(`${where}: amount must be an integer`);
+  if (r.bossOnly !== undefined && typeof r.bossOnly !== 'boolean') e.push(`${where}: bossOnly must be boolean`);
+  if (r.chance !== undefined && !isNum(r.chance, 0, 1)) e.push(`${where}: chance must be 0..1`);
+  if (r.bossOnly === true && r.chance === undefined) e.push(`${where}: bossOnly reward needs a chance`);
   if (r.target !== undefined && r.target !== 'all' && r.target !== 'one') e.push(`${where}: bad target`);
   if (!isNum(r.weight, 0, 1000)) e.push(`${where}: bad weight`);
   return e;

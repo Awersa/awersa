@@ -125,9 +125,11 @@ export function takeTurn(state: BattleState, handIndex: number | null, bal: Bala
       events.push({ t: 'clashWin', side: res.winner, wins: winner.clashWins, needed });
       oneSidedAttack(winner, res.winner === 'player' ? pSkill : eSkill, res.winnerCoins, loser, res.clashCount, rng, bal, events);
     } else if (pSlot) {
-      oneSidedAttack(player, effectiveSkill(player, pSlot), player.skills[pSlot].coinCount, enemy, 0, rng, bal, events);
+      const sk = effectiveSkill(player, pSlot);
+      oneSidedAttack(player, sk, sk.coinCount, enemy, 0, rng, bal, events);
     } else if (eSlot) {
-      oneSidedAttack(enemy, effectiveSkill(enemy, eSlot), enemy.skills[eSlot].coinCount, player, 0, rng, bal, events);
+      const sk = effectiveSkill(enemy, eSlot);
+      oneSidedAttack(enemy, sk, sk.coinCount, player, 0, rng, bal, events);
     }
 
     // --- outcome ---

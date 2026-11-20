@@ -171,3 +171,19 @@ The spec is in `SPEC.md`. This file records **assumptions I made** where the spe
 | random | 0.3% | 0.3% |
 
 First-floor loss stays at about 6–8%.
+
+## Reward screen + boss coin reward (user request)
+- **Reward cards show before → after**: `S1 가르기 (덱 3장): 5~11 → 6~12`, `HP 50 → 85 / 140`, `코인 2→3개`. They are computed by applying the reward to a copy of the player, so the text always matches what actually happens.
+- **New boss-only reward "코인 주조" (coin +1 on one random skill)**:
+  - After a **boss** battle it appears with probability **50%** (`rewards.json → coin_add.chance`) and replaces one of the 3 offers. It never appears on normal floors.
+  - It has a gold frame and the label "★ … (보스 보상)".
+  - A skill can't go above **5 coins** (`balance.json → rewards.maxCoinCount`). Skills already at the cap are never picked.
+  - Engine: `SkillMod.coinCount`. Every coin count now goes through `effectiveSkill()`, including the one-sided-attack hit count and the animator's coin rows.
+- **No heal offers at full HP** (it was a wasted pick).
+- **Accelerating enemy growth** (`floor.basePowerAccelDivisor = 60`): extra enemy base power = ⌊(floor−1)²/60⌋, i.e. +1 at floor 9, +6 at floor 21, +15 at floor 31. Without it, accumulated rewards (especially extra coins) eventually outscaled the linear enemy growth and some simulated runs never ended (hit the 200-floor sim cap). The early game is unchanged.
+- Measured (N=3000):
+
+| | 1층 패배 | 5층 보스 돌파 (잘/전체만/무작위) | 10층 (잘/전체만/무작위) | 최고 |
+|---|---|---|---|---|
+| 한결 | 6% | 50% / 39% / 22% | 13% / 4% / 1% | 24 |
+| 도담 | 8% | 46% / 28% / 15% | 11% / 2% / 0.3% | 21 |

@@ -60,11 +60,13 @@
     "coinPowerEveryFloors": 3,
     "levelPerFloor": 1,
     "bossEvery": 5,
-    "bossHpMultiplier": 1.0
+    "bossHpMultiplier": 1.0,
+    "basePowerAccelDivisor": 60
   },
   "rewards": {
     "offerCount": 3,
-    "healAfterBattle": 0.3
+    "healAfterBattle": 0.3,
+    "maxCoinCount": 5
   },
   "features": {
     "sinAndEgo": false

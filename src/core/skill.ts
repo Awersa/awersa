@@ -11,6 +11,7 @@ export function effectiveSkill(unit: UnitState, slot: SkillSlot): EffectiveSkill
     slot,
     basePower: def.basePower + (mod?.basePower ?? 0),
     coinPower: def.coinPower + (mod?.coinPower ?? 0),
+    coinCount: def.coinCount + (mod?.coinCount ?? 0),
   };
 }
 

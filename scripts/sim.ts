@@ -19,6 +19,7 @@ import {
   generateOffers,
   headsChance,
   indexSkills,
+  isBossFloor,
   maxOneSidedDamage,
   pickEnemyDef,
   playerStatus,
@@ -135,9 +136,12 @@ const smartReward: RewardPolicy = (offers, p) => {
       case 'maxHp': return 0.4 + (1 - hpRatio);
       case 'basePower':
       case 'coinPower':
+      case 'coinCount':
         return o.slots.reduce((sum, slot) => {
           const freq = bal.deck[slot] / deckTotal;
-          const per = o.kind === 'basePower' ? 1 : p.skills[slot].coinCount * ch;
+          const sk = effectiveSkill(p, slot);
+          // an extra coin: its expected power in clashes + one more hit (≈ +2 power-equivalents)
+          const per = o.kind === 'basePower' ? 1 : o.kind === 'coinPower' ? sk.coinCount * ch : sk.coinPower * ch + 2;
           return sum + freq * per * o.amount;
         }, 0);
     }
@@ -162,7 +166,7 @@ function endless(pd: (typeof data.players)[number], seed: number, pickReward: (r
     const s = fight(player, enemy, rng.int(0, 2 ** 31), smartPolicy);
     if (s.outcome === 'lose') return { floor, byHp: s.player.hp <= 0 };
     recoverAfterBattle(player, bal);
-    applyReward(player, policy(generateOffers(data.rewards, player, rng, bal), player));
+    applyReward(player, policy(generateOffers(data.rewards, player, rng, bal, isBossFloor(floor, bal)), player), bal);
     floor++;
     if (floor > 200) return { floor, byHp: false };
   }
@@ -182,6 +186,6 @@ for (const pd of data.players) {
     const q = (p: number) => reached[Math.floor(p * (reached.length - 1))];
     const avg = reached.reduce((a, b) => a + b, 0) / reached.length;
     const boss = (k: number) => pct(reached.filter((f) => f > bal.floor.bossEvery * k).length / N);
-    console.log(`  ${pd.name} [${label}]: 1층 패배 ${pct(firstLoss / N)} | 도달 층 평균 ${avg.toFixed(1)} · 중앙값 ${q(0.5)} · 상위10% ${q(0.9)} · 최고 ${reached.at(-1)} | 5층 보스 돌파 ${boss(1)} · 10층 ${boss(2)}`);
+    console.log(`  ${pd.name} [${label}]: 1층 패배 ${pct(firstLoss / N)} | 도달 층 평균 ${avg.toFixed(1)} · 중앙값 ${q(0.5)} · 상위10% ${q(0.9)} · 최고 ${reached.at(-1)}${reached.at(-1)! > 200 ? '(상한)' : ''} · 30층+ ${pct(reached.filter((f) => f > 30).length / N)} | 5층 보스 돌파 ${boss(1)} · 10층 ${boss(2)}`);
   }
 }

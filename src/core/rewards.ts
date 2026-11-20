@@ -1,17 +1,21 @@
 import type { Balance } from './balance.ts';
 import type { Rng } from './rng.ts';
-import { powerRange, effectiveSkill } from './skill.ts';
+import { effectiveSkill, powerRange } from './skill.ts';
 import { SKILL_SLOTS, type SkillSlot, type UnitState } from './types.ts';
 
-export const REWARD_KINDS = ['basePower', 'coinPower', 'heal', 'maxHp'] as const;
+export const REWARD_KINDS = ['basePower', 'coinPower', 'coinCount', 'heal', 'maxHp'] as const;
 export type RewardKind = (typeof REWARD_KINDS)[number];
+const SKILL_KINDS: readonly RewardKind[] = ['basePower', 'coinPower', 'coinCount'];
 
 /**
  * Reward template (src/data/rewards.json).
  *  basePower: "최소 합 위력 증가" — +amount base power (raises both min and max).
  *  coinPower: "최대 합 위력 증가" — +amount per-heads power (raises max only).
+ *  coinCount: +amount coins on a skill (capped by balance.rewards.maxCoinCount).
  *  heal:      heal amount × maxHp (ratio).
  *  maxHp:     +amount max HP (and heals the same amount).
+ * bossOnly rewards never appear in the normal weighted pool: after a boss battle each one is
+ * offered with probability `chance` (it replaces the last regular offer).
  */
 export interface RewardDef {
   id: string;
@@ -21,6 +25,9 @@ export interface RewardDef {
   /** For skill rewards: every attack skill, or one random slot. */
   target?: 'all' | 'one';
   weight: number;
+  bossOnly?: boolean;
+  /** bossOnly: probability (0..1) of being offered after a boss. */
+  chance?: number;
 }
 
 export interface RewardOffer {
@@ -31,55 +38,29 @@ export interface RewardOffer {
   /** Slots it applies to (skill rewards). */
   slots: SkillSlot[];
   description: string;
+  /** Came from the boss-only pool (UI may highlight it). */
+  special?: boolean;
 }
 
-function describe(def: RewardDef, unit: UnitState, slots: SkillSlot[], bal: Balance): string {
-  const range = (s: SkillSlot) => {
-    const r = powerRange(effectiveSkill(unit, s));
-    return `${r.min}~${r.max}`;
-  };
-  switch (def.kind) {
-    case 'basePower':
-    case 'coinPower': {
-      const what = def.kind === 'basePower' ? `기본 위력 +${def.amount}` : `코인 위력 +${def.amount}`;
-      const who =
-        slots.length === SKILL_SLOTS.length
-          ? '모든 공격 스킬'
-          : slots.map((s) => `${s} ${unit.skills[s].name} (덱 ${bal.deck[s]}장)`).join(', ');
-      return `${who}: ${what} (현재 ${slots.map(range).join(' / ')})`;
-    }
-    case 'heal':
-      return `체력 ${Math.round(def.amount * 100)}% 회복 (${unit.hp}/${unit.maxHp})`;
-    case 'maxHp':
-      return `최대 체력 +${def.amount}`;
-  }
+export function isSkillReward(kind: RewardKind): boolean {
+  return SKILL_KINDS.includes(kind);
 }
 
-/** Offers `bal.rewards.offerCount` distinct rewards (by def id), weighted. */
-export function generateOffers(defs: readonly RewardDef[], unit: UnitState, rng: Rng, bal: Balance): RewardOffer[] {
-  const pool = defs.filter((d) => d.weight > 0);
-  const out: RewardOffer[] = [];
-  while (out.length < bal.rewards.offerCount && pool.length > 0) {
-    const def = rng.weighted(pool, (d) => d.weight);
-    pool.splice(pool.indexOf(def), 1);
-    const slots: SkillSlot[] =
-      def.kind === 'basePower' || def.kind === 'coinPower'
-        ? def.target === 'one'
-          ? [rng.pick(SKILL_SLOTS)]
-          : [...SKILL_SLOTS]
-        : [];
-    out.push({ defId: def.id, name: def.name, kind: def.kind, amount: def.amount, slots, description: describe(def, unit, slots, bal) });
-  }
-  return out;
-}
-
-export function applyReward(unit: UnitState, offer: RewardOffer): void {
+export function applyReward(unit: UnitState, offer: RewardOffer, bal?: Balance): void {
   switch (offer.kind) {
     case 'basePower':
     case 'coinPower':
       for (const s of offer.slots) {
         const m = (unit.skillMods[s] ??= { basePower: 0, coinPower: 0 });
         m[offer.kind] += offer.amount;
+      }
+      return;
+    case 'coinCount':
+      for (const s of offer.slots) {
+        const m = (unit.skillMods[s] ??= { basePower: 0, coinPower: 0 });
+        const cap = bal?.rewards.maxCoinCount ?? Infinity;
+        const room = Math.max(0, cap - effectiveSkill(unit, s).coinCount);
+        m.coinCount = (m.coinCount ?? 0) + Math.min(offer.amount, room);
       }
       return;
     case 'heal':
@@ -90,6 +71,86 @@ export function applyReward(unit: UnitState, offer: RewardOffer): void {
       unit.hp += offer.amount;
       return;
   }
+}
+
+/** Human-readable effect with before → after numbers. */
+export function describeOffer(offer: Omit<RewardOffer, 'description'>, unit: UnitState, bal: Balance): string {
+  const after = structuredClone(unit);
+  applyReward(after, { ...offer, description: '' }, bal);
+  const range = (u: UnitState, s: SkillSlot) => {
+    const r = powerRange(effectiveSkill(u, s));
+    return `${r.min}~${r.max}`;
+  };
+  switch (offer.kind) {
+    case 'basePower':
+    case 'coinPower':
+    case 'coinCount': {
+      const what =
+        offer.kind === 'basePower'
+          ? `기본 위력 +${offer.amount}`
+          : offer.kind === 'coinPower'
+            ? `코인 위력 +${offer.amount}`
+            : `코인 +${offer.amount}개`;
+      const lines = offer.slots.map((s) => {
+        const coins =
+          offer.kind === 'coinCount'
+            ? ` · 코인 ${effectiveSkill(unit, s).coinCount}→${effectiveSkill(after, s).coinCount}개`
+            : '';
+        return `${s} ${unit.skills[s].name} (덱 ${bal.deck[s]}장): ${range(unit, s)} → ${range(after, s)}${coins}`;
+      });
+      const head = offer.slots.length === SKILL_SLOTS.length ? `모든 공격 스킬 ${what}` : what;
+      return [head, ...lines].join('\n');
+    }
+    case 'heal':
+      return `체력 ${Math.round(offer.amount * 100)}% 회복\nHP ${unit.hp} → ${after.hp} / ${unit.maxHp}`;
+    case 'maxHp':
+      return `최대 체력 +${offer.amount}\nHP ${unit.hp}/${unit.maxHp} → ${after.hp}/${after.maxHp}`;
+  }
+}
+
+function makeOffer(def: RewardDef, unit: UnitState, rng: Rng, bal: Balance): RewardOffer | null {
+  if (def.kind === 'heal' && unit.hp >= unit.maxHp) return null; // a no-op choice
+  let slots: SkillSlot[] = [];
+  if (isSkillReward(def.kind)) {
+    let pool = [...SKILL_SLOTS];
+    if (def.kind === 'coinCount') pool = pool.filter((s) => effectiveSkill(unit, s).coinCount < bal.rewards.maxCoinCount);
+    if (pool.length === 0) return null;
+    slots = def.target === 'one' ? [rng.pick(pool)] : pool;
+  }
+  const base = { defId: def.id, name: def.name, kind: def.kind, amount: def.amount, slots, ...(def.bossOnly ? { special: true } : {}) };
+  return { ...base, description: describeOffer(base, unit, bal) };
+}
+
+/**
+ * Offers `bal.rewards.offerCount` distinct rewards (by def id), weighted.
+ * After a boss (`afterBoss`), each bossOnly reward is rolled against its `chance`.
+ */
+export function generateOffers(
+  defs: readonly RewardDef[],
+  unit: UnitState,
+  rng: Rng,
+  bal: Balance,
+  afterBoss = false,
+): RewardOffer[] {
+  const pool = defs.filter((d) => !d.bossOnly && d.weight > 0);
+  const out: RewardOffer[] = [];
+  while (out.length < bal.rewards.offerCount && pool.length > 0) {
+    const def = rng.weighted(pool, (d) => d.weight);
+    pool.splice(pool.indexOf(def), 1);
+    const offer = makeOffer(def, unit, rng, bal);
+    if (offer) out.push(offer);
+  }
+  if (afterBoss) {
+    let replace = out.length - 1; // special offers replace regular ones from the end
+    for (const def of defs) {
+      if (!def.bossOnly || !rng.chance(def.chance ?? 0)) continue;
+      const offer = makeOffer(def, unit, rng, bal);
+      if (!offer) continue;
+      if (out.length < bal.rewards.offerCount) out.push(offer);
+      else if (replace >= 0) out[replace--] = offer;
+    }
+  }
+  return out;
 }
 
 /** Automatic recovery after a won battle (balance.rewards.healAfterBattle × max HP). */

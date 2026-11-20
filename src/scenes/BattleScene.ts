@@ -92,7 +92,7 @@ export class BattleScene extends Phaser.Scene {
     );
     this.animator = new ClashAnimator(this, {
       names: this.names,
-      coinCount: (side, slot) => this.state[side].skills[slot].coinCount,
+      coinCount: (side, slot) => effectiveSkill(this.state[side], slot).coinCount,
       setHp: (side, hp, duration) => (side === 'player' ? this.playerHp : this.enemyHp).tweenHp(hp, duration),
       setSanity: (side, value) => side === 'player' && this.sanity.setValue(value, headsChance({ hasSanity: true, sanity: value }, bal)),
       setClashWins: (side, wins, needed) => {
@@ -333,12 +333,17 @@ export class BattleScene extends Phaser.Scene {
         const y = 800 + i * 330;
         const box = this.add.container(CX, y);
         box.add([
-          this.add.rectangle(0, 0, GAME_WIDTH - 120, 290, COLORS.panel).setStrokeStyle(5, COLORS.gold),
-          text(this, 0, -80, 50).setOrigin(0.5).setText(offer.name),
-          text(this, 0, 20, 34, COLORS.textDim)
+          this.add
+            .rectangle(0, 0, GAME_WIDTH - 120, 290, offer.special ? 0x3a2410 : COLORS.panel)
+            .setStrokeStyle(offer.special ? 9 : 5, offer.special ? 0xffd166 : COLORS.gold),
+          text(this, 0, -100, 46, offer.special ? '#ffd166' : COLORS.text)
+            .setOrigin(0.5)
+            .setText(offer.special ? `★ ${offer.name} (보스 보상)` : offer.name),
+          text(this, 0, -60, 30, COLORS.textDim)
             .setOrigin(0.5, 0)
             .setAlign('center')
-            .setWordWrapWidth(GAME_WIDTH - 200, true)
+            .setLineSpacing(6)
+            .setWordWrapWidth(GAME_WIDTH - 180, true)
             .setText(offer.description),
         ]);
         box.setSize(GAME_WIDTH - 120, 290);

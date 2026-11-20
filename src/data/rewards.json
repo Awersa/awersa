@@ -44,5 +44,15 @@
     "kind": "maxHp",
     "amount": 20,
     "weight": 2
+  },
+  {
+    "id": "coin_add",
+    "name": "코인 주조",
+    "kind": "coinCount",
+    "amount": 1,
+    "target": "one",
+    "weight": 0,
+    "bossOnly": true,
+    "chance": 0.5
   }
 ]

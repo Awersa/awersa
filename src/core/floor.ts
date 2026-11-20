@@ -20,7 +20,8 @@ export function createEnemyForFloor(def: UnitDef, skills: SkillTable, floor: num
   const f = Math.max(0, Math.floor(floor) - 1);
   const hpMult = (1 + bal.floor.hpPerFloor * f) * (u.boss ? bal.floor.bossHpMultiplier : 1);
   u.maxHp = u.hp = Math.max(1, Math.round(def.maxHp * hpMult));
-  const base = bal.floor.basePowerEveryFloors > 0 ? Math.floor(f / bal.floor.basePowerEveryFloors) : 0;
+  const accel = bal.floor.basePowerAccelDivisor > 0 ? Math.floor((f * f) / bal.floor.basePowerAccelDivisor) : 0;
+  const base = (bal.floor.basePowerEveryFloors > 0 ? Math.floor(f / bal.floor.basePowerEveryFloors) : 0) + accel;
   const coin = bal.floor.coinPowerEveryFloors > 0 ? Math.floor(f / bal.floor.coinPowerEveryFloors) : 0;
   if (base || coin) for (const s of SKILL_SLOTS) u.skillMods[s] = { basePower: base, coinPower: coin };
   u.offenseLevel += bal.floor.levelPerFloor * f;

@@ -68,6 +68,8 @@ export interface UnitDef {
 export interface SkillMod {
   basePower: number;
   coinPower: number;
+  /** Extra coins (boss reward). Optional so older saves/mods stay valid. */
+  coinCount?: number;
 }
 
 export type PanicState = 'none' | 'pending' | 'active';
