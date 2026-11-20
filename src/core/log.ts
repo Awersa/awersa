@@ -1,5 +1,11 @@
 import type { BattleEvent, Side } from './types.ts';
 
+export const BATTLE_END_REASON = {
+  enemyHp: '상대 체력 0',
+  playerHp: '내 체력 0',
+  clashWins: '합 3승',
+} as const;
+
 const who = (s: Side, names: Record<Side, string>) => names[s];
 const coins = (h: boolean[]) => h.map((x) => (x ? '●' : '○')).join('');
 
@@ -34,6 +40,6 @@ export function formatEvent(e: BattleEvent, names: Record<Side, string>): string
     case 'clashWin':
       return `  ${who(e.side, names)} 합 승리 ${e.wins}${e.needed !== null ? `/${e.needed}` : ''}`;
     case 'battleEnd':
-      return `=== ${e.outcome === 'win' ? '승리' : '패배'} (${e.reason === 'hp' ? '체력 0' : '합 승리 수'}) ===`;
+      return `=== ${e.outcome === 'win' ? '승리' : '패배'} (${BATTLE_END_REASON[e.reason]}) ===`;
   }
 }

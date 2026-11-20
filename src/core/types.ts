@@ -151,4 +151,4 @@ export type BattleEvent =
   | { t: 'panic'; side: Side }
   | { t: 'panicRecover'; side: Side; sanity: number }
   | { t: 'clashWin'; side: Side; wins: number; needed: number | null }
-  | { t: 'battleEnd'; outcome: 'win' | 'lose'; reason: 'hp' | 'clashWins' };
+  | { t: 'battleEnd'; outcome: 'win' | 'lose'; reason: 'enemyHp' | 'playerHp' | 'clashWins' };

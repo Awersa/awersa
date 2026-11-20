@@ -37,15 +37,35 @@ describe('battle flow', () => {
     expect(e.clashWins).toBe(3);
   });
 
-  it('HP reaching 0 ends the battle immediately', () => {
+  it('duel rule: bringing the ENEMY to 0 HP is a loss', () => {
     const b = bal();
     const p = makeUnit('player', { basePower: 50, coinPower: 0, coinCount: 1 });
     const e = makeUnit('enemy', { basePower: 1, coinPower: 0, coinCount: 1 }, { maxHp: 30 });
     const { state } = createBattle(p, e, 1, b);
     const ev = play(state, b);
-    expect(state.outcome).toBe('win');
-    expect(ev.at(-1)).toMatchObject({ reason: 'hp' });
+    expect(state.outcome).toBe('lose');
+    expect(ev.at(-1)).toEqual({ t: 'battleEnd', outcome: 'lose', reason: 'enemyHp' });
     expect(e.hp).toBe(0);
+  });
+
+  it('enemyHpZero can be switched back to a win', () => {
+    const b = bal();
+    b.battle.enemyHpZero = 'win';
+    const p = makeUnit('player', { basePower: 50, coinPower: 0, coinCount: 1 });
+    const e = makeUnit('enemy', { basePower: 1, coinPower: 0, coinCount: 1 }, { maxHp: 30 });
+    const { state } = createBattle(p, e, 1, b);
+    play(state, b);
+    expect(state.outcome).toBe('win');
+  });
+
+  it('player reaching 0 HP is a loss', () => {
+    const b = bal();
+    const p = makeUnit('player', { basePower: 1, coinPower: 0, coinCount: 1 }, { maxHp: 30 });
+    const e = makeUnit('enemy', { basePower: 50, coinPower: 0, coinCount: 1 });
+    const { state } = createBattle(p, e, 1, b);
+    const ev = play(state, b);
+    expect(state.outcome).toBe('lose');
+    expect(ev.at(-1)).toMatchObject({ reason: 'playerHp' });
   });
 
   it('clash-win rules can be disabled (HP only)', () => {

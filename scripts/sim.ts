@@ -18,6 +18,7 @@ import {
   generateOffers,
   headsChance,
   indexSkills,
+  maxOneSidedDamage,
   pickEnemyDef,
   playerStatus,
   takeTurn,
@@ -58,18 +59,21 @@ const { values: args } = parseArgs({
 
 type Policy = (s: BattleState) => number;
 const randomPolicy = (rng: Rng): Policy => (s) => rng.int(0, s.player.hand.length - 1);
-/** Picks the card with the highest expected clash power. */
+/**
+ * Picks the card with the highest expected clash power, but avoids cards whose best case
+ * could kill the enemy (duel rule) when a safer card exists.
+ */
 const smartPolicy: Policy = (s) => {
   const p = s.player;
   const ch = headsChance(p, bal);
-  let best = 0;
-  let bestVal = -Infinity;
-  p.hand.forEach((slot, i) => {
+  const scored = p.hand.map((slot, i) => {
     const sk = effectiveSkill(p, slot);
-    const v = sk.basePower + sk.coinPower * sk.coinCount * ch + sk.coinCount * 0.5;
-    if (v > bestVal) [best, bestVal] = [i, v];
+    const lethal = bal.battle.enemyHpZero === 'lose' && maxOneSidedDamage(p, sk, sk.coinCount, s.enemy, sk.coinCount, bal) >= s.enemy.hp;
+    return { i, lethal, value: sk.basePower + sk.coinPower * sk.coinCount * ch + sk.coinCount * 0.5 };
   });
-  return best;
+  const safe = scored.filter((x) => !x.lethal);
+  const pool = safe.length > 0 ? safe : scored.map((x) => ({ ...x, value: -x.value }));
+  return pool.reduce((a, b) => (b.value > a.value ? b : a)).i;
 };
 
 function fight(player: UnitState, enemy: UnitState, seed: number, policy: Policy, log = false): BattleState {
@@ -120,7 +124,7 @@ console.log(`\n[무한 모드 런] (N=${N}, 똑똑한 선택, 보상은 무작�
 for (const pd of data.players) {
   const reached: number[] = [];
   let firstLoss = 0;
-  const lossBy = { hp: 0, clashWins: 0 };
+  const lossBy = { hp: 0, kill: 0, clashWins: 0 };
   for (let i = 0; i < N; i++) {
     const rng = createRng(1000 + i);
     const player = createUnit(pd, skills, 'player', bal);
@@ -130,6 +134,7 @@ for (const pd of data.players) {
       const s = fight(player, enemy, rng.int(0, 2 ** 31), smartPolicy);
       if (s.outcome === 'lose') {
         if (s.player.hp <= 0) lossBy.hp++;
+        else if (s.enemy.hp <= 0) lossBy.kill++;
         else lossBy.clashWins++;
         break;
       }
@@ -144,5 +149,5 @@ for (const pd of data.players) {
   const q = (p: number) => reached[Math.floor(p * (reached.length - 1))];
   const avg = reached.reduce((a, b) => a + b, 0) / reached.length;
   const bossClear = reached.filter((f) => f > bal.floor.bossEvery).length / N;
-  console.log(`  ${pd.name}: 1층 패배 ${pct(firstLoss / N)} | 도달 층 평균 ${avg.toFixed(1)} · 중앙값 ${q(0.5)} · 상위10% ${q(0.9)} · 최고 ${reached.at(-1)} | 첫 보스 돌파 ${pct(bossClear)} | 패배 원인: 체력 ${pct(lossBy.hp / N)} · 합 패배 ${pct(lossBy.clashWins / N)}`);
+  console.log(`  ${pd.name}: 1층 패배 ${pct(firstLoss / N)} | 도달 층 평균 ${avg.toFixed(1)} · 중앙값 ${q(0.5)} · 상위10% ${q(0.9)} · 최고 ${reached.at(-1)} | 첫 보스 돌파 ${pct(bossClear)} | 패배 원인: 내 체력 ${pct(lossBy.hp / N)} · 상대 사망 ${pct(lossBy.kill / N)} · 합 패배 ${pct(lossBy.clashWins / N)}`);
 }

@@ -87,3 +87,24 @@ export function oneSidedAttack(
     events.push({ t: 'coinHit', attacker: attacker.side, coin: c, heads, power: hitPower, damage: dmg, targetHp: target.hp });
   }
 }
+
+/**
+ * Upper bound of one-sided damage if every coin lands its best face (used for the
+ * "lethal risk" warning: under the duel rule, killing the opponent loses the battle).
+ */
+export function maxOneSidedDamage(
+  attacker: UnitState,
+  skill: EffectiveSkill,
+  coins: number,
+  target: UnitState,
+  clashCount: number,
+  bal: Balance,
+): number {
+  let power = skill.basePower;
+  let total = 0;
+  for (let c = 0; c < coins; c++) {
+    if (skill.coinPower > 0) power += skill.coinPower;
+    total += computeDamage({ power: Math.max(0, power), skill, attacker, target, clashCount }, bal);
+  }
+  return total;
+}

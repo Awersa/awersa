@@ -44,10 +44,15 @@
   "battle": {
     "playerClashWinsToWin": 3,
     "enemyClashWinsToWin": 3,
+    "enemyHpZero": "lose",
     "minHitDamage": 1
   },
   "ai": {
-    "defaultWeights": { "S1": 1, "S2": 1.5, "S3": 3 }
+    "defaultWeights": {
+      "S1": 1,
+      "S2": 1.5,
+      "S3": 3
+    }
   },
   "floor": {
     "hpPerFloor": 0.12,

@@ -2,7 +2,7 @@
   {
     "id": "thug",
     "name": "뒷골목 패거리",
-    "maxHp": 80,
+    "maxHp": 160,
     "staggerThresholds": [
       0.5
     ],
@@ -29,7 +29,7 @@
   {
     "id": "rust",
     "name": "녹슨 경비 인형",
-    "maxHp": 105,
+    "maxHp": 190,
     "staggerThresholds": [
       0.6,
       0.3
@@ -57,7 +57,7 @@
   {
     "id": "hound",
     "name": "그림자 들개",
-    "maxHp": 70,
+    "maxHp": 150,
     "staggerThresholds": [
       0.5
     ],
@@ -84,7 +84,7 @@
   {
     "id": "keeper",
     "name": "시계탑 관리인",
-    "maxHp": 180,
+    "maxHp": 330,
     "staggerThresholds": [
       0.75,
       0.5,

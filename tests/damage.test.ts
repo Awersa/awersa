@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, computeDamage, levelModifier, oneSidedAttack } from '../src/core/damage.ts';
+import { applyDamage, computeDamage, levelModifier, maxOneSidedDamage, oneSidedAttack } from '../src/core/damage.ts';
 import { effectiveSkill } from '../src/core/skill.ts';
 import type { BattleEvent } from '../src/core/types.ts';
 import { bal, makeUnit, scriptedRng } from './helpers.ts';
@@ -90,5 +90,20 @@ describe('one-sided attack', () => {
     const ev: BattleEvent[] = [];
     oneSidedAttack(atk, effectiveSkill(atk, 'S1'), 3, tgt, 0, scriptedRng([true, true, true]), bal(), ev);
     expect(ev.filter((e) => e.t === 'coinHit')).toHaveLength(1);
+  });
+});
+
+describe('max one-sided damage (lethal warning)', () => {
+  it('assumes every coin lands heads', () => {
+    const atk = makeUnit('player', { basePower: 4, coinPower: 3, coinCount: 3 });
+    const tgt = makeUnit('enemy');
+    // powers 7, 10, 13
+    expect(maxOneSidedDamage(atk, effectiveSkill(atk, 'S1'), 3, tgt, 0, bal())).toBe(30);
+  });
+  it('doubles against a staggered target', () => {
+    const atk = makeUnit('player', { basePower: 4, coinPower: 3, coinCount: 1 });
+    const tgt = makeUnit('enemy');
+    tgt.staggerTurnsLeft = 1;
+    expect(maxOneSidedDamage(atk, effectiveSkill(atk, 'S1'), 1, tgt, 0, bal())).toBe(14);
   });
 });

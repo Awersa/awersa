@@ -77,3 +77,17 @@ The spec is in `SPEC.md`. This file records **assumptions I made** where the spe
 - Single battles on floor 1: smart pick wins 80–94%, random pick wins 70–90%. The boss is 7–9% without any upgrades.
 - Most losses happen by **HP running out over several floors** (67–84%). The rest are losing 3 clashes.
 - These numbers will move once defense skills and status effects arrive in M5, so I'll retune then.
+
+## Rule change (user request, after milestone 2): duel rule
+- **Win: only by reaching 3 clash wins.**
+- **Loss:** the enemy reaches 3 clash wins, **or anyone's HP reaches 0. Killing the enemy is also a loss** (`battle.enemyHpZero: "lose"`; set it to `"win"` to go back to the old rule).
+- To make this work, enemy HP was raised (thug 160 / rust 190 / hound 150 / boss 330). Lethal risk is now a real decision: when the enemy is low or staggered, you pick a weaker card.
+  - "최대합 증가" (max power up) rewards become double-edged. They make clashes easier to win but also make it easier to kill the enemy by accident.
+  - Hitting an enemy's weakness can be a liability. For example, 도담 (blunt) vs the hound (weak to blunt) only wins about 52%.
+- The engine gained `maxOneSidedDamage()` (an upper bound on damage). The UI uses it for the "lethal risk" warning.
+- Re-measured (N=3000):
+
+| | 1층 패배 | 도달 층 중앙값 | 상위 10% | 첫 보스 돌파 | 패배 원인 (내 HP / 상대 사망 / 합 패배) |
+|---|---|---|---|---|---|
+| 한결 | 21% | 4 | 8 | 21% | 76% / 8% / 16% |
+| 도담 | 26% | 3 | 6 | 14% | 57% / 9% / 34% |

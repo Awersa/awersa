@@ -149,13 +149,13 @@ export function takeTurn(state: BattleState, handIndex: number | null, bal: Bala
 }
 
 function checkOutcome(state: BattleState, bal: Balance, events: BattleEvent[]): void {
-  const end = (outcome: 'win' | 'lose', reason: 'hp' | 'clashWins') => {
+  const end = (outcome: 'win' | 'lose', reason: 'enemyHp' | 'playerHp' | 'clashWins') => {
     state.outcome = outcome;
     state.enemyIntent = null;
     events.push({ t: 'battleEnd', outcome, reason });
   };
-  if (state.enemy.hp <= 0) return end('win', 'hp');
-  if (state.player.hp <= 0) return end('lose', 'hp');
+  if (state.enemy.hp <= 0) return end(bal.battle.enemyHpZero, 'enemyHp');
+  if (state.player.hp <= 0) return end('lose', 'playerHp');
   const need: Record<Side, number | null> = {
     player: bal.battle.playerClashWinsToWin,
     enemy: bal.battle.enemyClashWinsToWin,

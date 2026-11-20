@@ -25,6 +25,8 @@ export interface Balance {
     playerClashWinsToWin: number | null;
     /** Player loses the battle when the enemy reaches this many clash wins. null = disabled. */
     enemyClashWinsToWin: number | null;
+    /** What happens when the ENEMY's HP reaches 0. 'lose' = duel rule: killing the opponent is a loss. */
+    enemyHpZero: 'win' | 'lose';
     /** Damage numbers: minimum damage of a hit whose (power × multiplier) is > 0. */
     minHitDamage: number;
   };
