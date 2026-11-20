@@ -26,3 +26,54 @@ The spec is in `SPEC.md`. This file records **assumptions I made** where the spe
 - **Two tsconfigs**: `tsconfig.json` for browser code and tests, with no Node types, so browser code can't import Node APIs by mistake. `tsconfig.node.json` is for `vite.config.ts`.
 - **Relative `base: './'`**: the build works from any sub-path, e.g. GitHub Pages.
 - **RNG**: mulberry32, with its full state held in one 32-bit integer. A run can be saved and resumed with exactly the same random sequence. `randomSeed()` uses `crypto.getRandomValues` (not security-critical).
+
+## Milestone 2 — battle engine
+
+### User requests for this milestone
+- **3 clash wins = you beat that opponent and move on.** Bringing the enemy's HP to 0 also wins. In the other direction, **you lose if the enemy reaches 3 clash wins first, or if your HP hits 0.** Settings: `balance.json → battle.playerClashWinsToWin / enemyClashWinsToWin`. Setting either to `null` turns that rule off, so the battle is decided by HP only.
+- **Victory rewards** in `src/data/rewards.json`:
+  - "최소 합 위력 증가" = `basePower` +N. Raises both min and max power.
+  - "최대 합 위력 증가" = `coinPower` +N. Raises max power only.
+  - Also heal and max HP up. Each can target all skills (`all`) or one random slot (`one`).
+  - The engine (generate offers / apply) is done now. The picking screen comes in milestone 6.
+- **Hard difficulty**: tuned with `npm run sim`, results below.
+
+### Assumptions
+- **HP carries over between battles within a run.** It only recovers through rewards. Sanity, stagger, panic and clash-win counts reset at each battle start.
+- **Only real clashes count toward the 3 wins.** Free hits on a staggered enemy don't count.
+- **Clash count**: every clash round counts, ties included, for the clash bonus and the sanity bonus.
+- **On a tie, both sides reroll.** After 50 ties in a row (`maxTieRerolls`), a coin flip decides who loses a coin, logged as `tieBreak`.
+- **One-sided attack**: the winner throws only its unbroken coins, one at a time. Power starts at base and adds +coinPower for each heads so far; every coin hits with the current power.
+- **Damage rounding**: damage is floored, with an epsilon guard against float error. Any hit with power > 0 and multiplier > 0 deals at least 1 (`battle.minHitDamage`).
+- **Level modifier**: added to the multiplier as `1 + modifier`. The skill's `levelOffset` is added to the attack level.
+- **Stagger**:
+  - It triggers when HP first falls *below* a threshold. Crossing several thresholds with one hit counts as one stagger.
+  - A killing blow does not stagger.
+  - A staggered unit loses its action for the rest of that turn and all of the next one, and recovers at the end of the next turn.
+  - If the enemy is staggered at turn start, it shows no intent, and the player's attack is a free one-sided hit.
+- **Sanity**:
+  - Win: +10 + 1 × clash count.
+  - Loss: −5 − 1 × clash count.
+  - At −45, panic starts on the next turn. With `random`, a random card from the hand is used automatically. At the end of that turn, sanity resets to 0 (`panicRecoverSanity`).
+  - Enemies have no sanity (`hasSanity: false`), so their heads chance is always 50%.
+- **Deck**:
+  - S1×3 / S2×2 / S3×1, hand of 2.
+  - The used card goes back into the pile, the pile is reshuffled, and a replacement is drawn into the same hand slot.
+  - Enemies use the same deck system. The AI picks from its hand weighted by `aiWeights` (default S1:1, S2:1.5, S3:3).
+- **Speed**: rolled every turn and logged. With 1 speed die it has no effect yet. It starts to matter with defense skills (M5) and 2 dice (M9).
+- **Floor scaling** (`balance.json → floor`):
+  - HP +12% per floor.
+  - Base power +1 every 3 floors, coin power +1 every 5 floors.
+  - Attack/defense level +2 per floor.
+  - A boss every 5 floors.
+- **Defense skills** (evade/guard) are in the data already, but the engine starts using them in milestone 5.
+
+### Balance snapshot (`npm run sim`, N=3000; smart = picks the card with higher expected power, random = random pick)
+| | 1층 패배 | 도달 층 중앙값 | 상위 10% | 첫 보스(5층) 돌파 |
+|---|---|---|---|---|
+| 한결 (참격) | 12% | 5 | 9 | 24% |
+| 도담 (타격) | 16% | 4 | 7 | 19% |
+
+- Single battles on floor 1: smart pick wins 80–94%, random pick wins 70–90%. The boss is 7–9% without any upgrades.
+- Most losses happen by **HP running out over several floors** (67–84%). The rest are losing 3 clashes.
+- These numbers will move once defense skills and status effects arrive in M5, so I'll retune then.

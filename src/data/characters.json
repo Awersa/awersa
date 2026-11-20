@@ -1,0 +1,60 @@
+[
+  {
+    "id": "hangyeol",
+    "name": "한결",
+    "maxHp": 90,
+    "staggerThresholds": [
+      0.6,
+      0.3
+    ],
+    "hasSanity": true,
+    "speedRange": [
+      3,
+      7
+    ],
+    "speedDiceCount": 1,
+    "resistances": {
+      "slash": "normal",
+      "pierce": "weak",
+      "blunt": "endured"
+    },
+    "offenseLevel": 30,
+    "defenseLevel": 30,
+    "skills": {
+      "S1": "hk_s1",
+      "S2": "hk_s2",
+      "S3": "hk_s3",
+      "defense": "hk_def"
+    },
+    "asset": "char.hangyeol"
+  },
+  {
+    "id": "dodam",
+    "name": "도담",
+    "maxHp": 110,
+    "staggerThresholds": [
+      0.5,
+      0.25
+    ],
+    "hasSanity": true,
+    "speedRange": [
+      2,
+      5
+    ],
+    "speedDiceCount": 1,
+    "resistances": {
+      "slash": "weak",
+      "pierce": "endured",
+      "blunt": "normal"
+    },
+    "offenseLevel": 30,
+    "defenseLevel": 30,
+    "skills": {
+      "S1": "dd_s1",
+      "S2": "dd_s2",
+      "S3": "dd_s3",
+      "defense": "dd_def"
+    },
+    "asset": "char.dodam"
+  }
+]

@@ -11,6 +11,8 @@ npm run dev        # http://localhost:5173 (이 PC에서만 접속 가능)
 npm test           # Vitest 단위 테스트
 npm run build      # 타입체크 + 프로덕션 빌드 (dist/, sw.js 자동 생성)
 npm run preview    # 빌드 결과를 로컬 + 같은 네트워크에 띄우기 (포트 4173)
+npm run sim        # 콘솔 전투 시뮬레이터: 승률표 + 무한 모드 통계 (밸런스 조정용)
+npm run sim -- --log --seed 7 --char hangyeol --enemy thug   # 전투 한 판 전체 로그
 ```
 
 ## 휴대폰에서 확인
@@ -20,6 +22,11 @@ npm run preview    # 빌드 결과를 로컬 + 같은 네트워크에 띄우기 
    - 공용 와이파이(카페 등)에서는 같은 네트워크의 다른 사람도 접속할 수 있으니 집 와이파이에서만 쓰세요.
 3. **홈 화면 설치(PWA)/오프라인 실행은 HTTPS가 필요**합니다. `http://192.168…` 주소에서는 게임은 되지만 설치·오프라인은 안 됩니다.
    설치하려면 `dist/`를 GitHub Pages 같은 HTTPS 호스팅에 올려서 접속하세요.
+
+## 밸런스 조정
+
+`src/data/*.json`만 고치면 됩니다 (`balance.json` 규칙 수치, `skills.json`, `characters.json`, `enemies.json`, `rewards.json`).
+잘못된 값(오타, 음수 코인 수, 없는 스킬 id 등)은 시작 시 검증에서 걸러지고, `npm run sim`으로 바로 승률을 확인할 수 있습니다.
 
 ## 구조
 

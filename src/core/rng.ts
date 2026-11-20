@@ -76,7 +76,7 @@ export function createRng(seed: number): Rng {
 
 /** A fresh seed for a new run (crypto-quality when available; not security sensitive). */
 export function randomSeed(): number {
-  const c = (globalThis as { crypto?: Crypto }).crypto;
+  const c = (globalThis as { crypto?: { getRandomValues?: (a: Uint32Array) => Uint32Array } }).crypto;
   if (c?.getRandomValues) return c.getRandomValues(new Uint32Array(1))[0] as number;
   return Math.floor(Math.random() * 2 ** 32);
 }

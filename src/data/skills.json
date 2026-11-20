@@ -1,0 +1,202 @@
+[
+  {
+    "id": "hk_s1",
+    "name": "가르기",
+    "type": "attack",
+    "damageType": "slash",
+    "sin": "wrath",
+    "basePower": 5,
+    "coinPower": 3,
+    "coinCount": 2
+  },
+  {
+    "id": "hk_s2",
+    "name": "연속 베기",
+    "type": "attack",
+    "damageType": "slash",
+    "sin": "lust",
+    "basePower": 4,
+    "coinPower": 3,
+    "coinCount": 3
+  },
+  {
+    "id": "hk_s3",
+    "name": "피바람",
+    "type": "attack",
+    "damageType": "slash",
+    "sin": "wrath",
+    "basePower": 6,
+    "coinPower": 4,
+    "coinCount": 3
+  },
+  {
+    "id": "hk_def",
+    "name": "받아넘기기",
+    "type": "evade",
+    "damageType": "slash",
+    "sin": "pride",
+    "basePower": 5,
+    "coinPower": 3,
+    "coinCount": 1
+  },
+  {
+    "id": "dd_s1",
+    "name": "내려찍기",
+    "type": "attack",
+    "damageType": "blunt",
+    "sin": "sloth",
+    "basePower": 5,
+    "coinPower": 2,
+    "coinCount": 2
+  },
+  {
+    "id": "dd_s2",
+    "name": "어깨 밀치기",
+    "type": "attack",
+    "damageType": "blunt",
+    "sin": "gluttony",
+    "basePower": 5,
+    "coinPower": 4,
+    "coinCount": 2
+  },
+  {
+    "id": "dd_s3",
+    "name": "지반 강타",
+    "type": "attack",
+    "damageType": "blunt",
+    "sin": "gloom",
+    "basePower": 4,
+    "coinPower": 6,
+    "coinCount": 3
+  },
+  {
+    "id": "dd_def",
+    "name": "버티기",
+    "type": "guard",
+    "damageType": "blunt",
+    "sin": "sloth",
+    "basePower": 8,
+    "coinPower": 3,
+    "coinCount": 1
+  },
+  {
+    "id": "thug_s1",
+    "name": "주먹질",
+    "type": "attack",
+    "damageType": "blunt",
+    "sin": "wrath",
+    "basePower": 3,
+    "coinPower": 3,
+    "coinCount": 2
+  },
+  {
+    "id": "thug_s2",
+    "name": "칼 찌르기",
+    "type": "attack",
+    "damageType": "pierce",
+    "sin": "envy",
+    "basePower": 5,
+    "coinPower": 3,
+    "coinCount": 2
+  },
+  {
+    "id": "thug_s3",
+    "name": "막무가내 난도질",
+    "type": "attack",
+    "damageType": "slash",
+    "sin": "wrath",
+    "basePower": 4,
+    "coinPower": 5,
+    "coinCount": 2
+  },
+  {
+    "id": "rust_s1",
+    "name": "철컥 타격",
+    "type": "attack",
+    "damageType": "blunt",
+    "sin": "sloth",
+    "basePower": 3,
+    "coinPower": 2,
+    "coinCount": 3
+  },
+  {
+    "id": "rust_s2",
+    "name": "톱니 회전",
+    "type": "attack",
+    "damageType": "slash",
+    "sin": "gluttony",
+    "basePower": 5,
+    "coinPower": 2,
+    "coinCount": 3
+  },
+  {
+    "id": "rust_s3",
+    "name": "과부하 압착",
+    "type": "attack",
+    "damageType": "blunt",
+    "sin": "sloth",
+    "basePower": 5,
+    "coinPower": 4,
+    "coinCount": 3
+  },
+  {
+    "id": "hound_s1",
+    "name": "물어뜯기",
+    "type": "attack",
+    "damageType": "pierce",
+    "sin": "gluttony",
+    "basePower": 3,
+    "coinPower": 4,
+    "coinCount": 2
+  },
+  {
+    "id": "hound_s2",
+    "name": "연속 할퀴기",
+    "type": "attack",
+    "damageType": "slash",
+    "sin": "envy",
+    "basePower": 2,
+    "coinPower": 3,
+    "coinCount": 4
+  },
+  {
+    "id": "hound_s3",
+    "name": "그림자 도약",
+    "type": "attack",
+    "damageType": "pierce",
+    "sin": "lust",
+    "basePower": 4,
+    "coinPower": 6,
+    "coinCount": 2
+  },
+  {
+    "id": "keeper_s1",
+    "name": "초침 베기",
+    "type": "attack",
+    "damageType": "slash",
+    "sin": "pride",
+    "basePower": 4,
+    "coinPower": 3,
+    "coinCount": 3
+  },
+  {
+    "id": "keeper_s2",
+    "name": "분침 관통",
+    "type": "attack",
+    "damageType": "pierce",
+    "sin": "pride",
+    "basePower": 6,
+    "coinPower": 3,
+    "coinCount": 3
+  },
+  {
+    "id": "keeper_s3",
+    "name": "정오의 종",
+    "type": "attack",
+    "damageType": "blunt",
+    "sin": "gloom",
+    "basePower": 5,
+    "coinPower": 5,
+    "coinCount": 3
+  }
+]
