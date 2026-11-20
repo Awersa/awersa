@@ -3,6 +3,7 @@ import { COLORS, DAMAGE_TYPE_KO, FONT, SIN_KO } from '../config/display.ts';
 import type { EffectiveSkill } from '../core/index.ts';
 import { makePressable } from './pressable.ts';
 import { TEX } from './placeholders.ts';
+import { reducedMotion } from './fx.ts';
 
 export interface CardInfo {
   skill: EffectiveSkill;
@@ -32,9 +33,17 @@ export class SkillCard extends Phaser.GameObjects.Container {
   private readonly coins: Phaser.GameObjects.Container;
   private readonly setPressEnabled: (on: boolean) => void;
   private selected = false;
+  private readonly homeY: number;
+  private lastKey: string | null = null;
+  private dealing = false;
+  private wantAlpha = 1;
+  /** Order in the hand (staggers the first deal). */
+  private readonly index: number;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, onPick: () => void) {
+  constructor(scene: Phaser.Scene, x: number, y: number, onPick: () => void, index = 0) {
     super(scene, x, y);
+    this.homeY = y;
+    this.index = index;
     this.bg = scene.add.rectangle(0, 0, W, H, COLORS.panel).setStrokeStyle(5, COLORS.panelLight);
     const t = (yy: number, size: number, color: string = COLORS.text) =>
       scene.add.text(0, yy, '', { fontFamily: FONT, fontSize: `${size}px`, color, align: 'center' }).setOrigin(0.5);
@@ -52,6 +61,12 @@ export class SkillCard extends Phaser.GameObjects.Container {
 
   show(info: CardInfo): void {
     const s = info.skill;
+    // A different card arrived in this hand slot → deal it in.
+    const key = `${s.slot}:${s.id}`;
+    if (key !== this.lastKey) {
+      this.deal(this.lastKey === null ? this.index * 90 : 0);
+      this.lastKey = key;
+    }
     this.title.setText(`${s.slot} ${s.name}`);
     this.sub.setText(`${DAMAGE_TYPE_KO[s.damageType]} · ${info.effects || SIN_KO[s.sin]}`);
     this.sub.setColor(info.effects ? '#ffd6a0' : COLORS.textDim);
@@ -68,7 +83,36 @@ export class SkillCard extends Phaser.GameObjects.Container {
     }
   }
 
+  /** Slides up from below with a slight spin. */
+  private deal(delay: number): void {
+    if (reducedMotion()) return;
+    this.dealing = true;
+    this.scene.tweens.killTweensOf(this);
+    this.setY(this.homeY + 160).setAlpha(0).setAngle(this.index === 0 ? -6 : 6);
+    this.scene.tweens.add({
+      targets: this,
+      y: this.homeY,
+      alpha: { getStart: () => 0, getEnd: () => this.wantAlpha },
+      angle: 0,
+      delay,
+      duration: 280,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.dealing = false;
+        this.setAlpha(this.wantAlpha);
+        if (this.selected) this.lift(true);
+      },
+    });
+  }
+
+  private lift(on: boolean): void {
+    if (this.dealing || reducedMotion()) return;
+    this.scene.tweens.killTweensOf(this);
+    this.scene.tweens.add({ targets: this, y: on ? this.homeY - 26 : this.homeY, duration: 140, ease: 'Quad.easeOut' });
+  }
+
   setSelected(on: boolean): void {
+    if (on !== this.selected) this.lift(on);
     this.selected = on;
     this.bg.setStrokeStyle(on ? 10 : 5, on ? COLORS.gold : COLORS.panelLight);
     this.bg.fillColor = on ? COLORS.panelLight : COLORS.panel;
@@ -80,6 +124,7 @@ export class SkillCard extends Phaser.GameObjects.Container {
 
   setEnabled(on: boolean): void {
     this.setPressEnabled(on);
-    this.setAlpha(on ? 1 : 0.45);
+    this.wantAlpha = on ? 1 : 0.45;
+    if (!this.dealing) this.setAlpha(this.wantAlpha);
   }
 }

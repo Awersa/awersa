@@ -25,6 +25,7 @@ export class RewardScene extends Phaser.Scene {
     const { bal } = gameContext();
     const p = run.player;
     this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.cameras.main.fadeIn(250, 18, 13, 11);
 
     t(this, CX, 110, 64, COLORS.ok).setOrigin(0.5).setText(`${run.floor}층 ${isBossFloor(run.floor, bal) ? '보스 ' : ''}돌파!`);
     t(this, CX, 195, 36, COLORS.textDim)

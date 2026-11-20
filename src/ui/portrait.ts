@@ -11,11 +11,13 @@ export class Portrait extends Phaser.GameObjects.Container {
   private readonly base: string;
   private readonly boxW: number;
   private readonly boxH: number;
+  private readonly color: number;
 
   constructor(scene: Phaser.Scene, x: number, y: number, w: number, h: number, assetBase: string | undefined, label: string, color: number) {
     super(scene, x, y);
     this.boxW = w;
     this.boxH = h;
+    this.color = color;
     this.base = assetBase ?? '';
     const idle = `${this.base}.idle`;
     this.box = scene.add.rectangle(0, 0, w, h, color, 0.3).setStrokeStyle(4, color);
@@ -42,6 +44,43 @@ export class Portrait extends Phaser.GameObjects.Container {
     const key = `${this.base}.${pose}`;
     this.img.setTexture(this.scene.textures.exists(key) ? key : `${this.base}.idle`);
     this.fit();
+  }
+
+  private homeX: number | null = null;
+  private crack: Phaser.GameObjects.Graphics | null = null;
+
+  /** Knocked away from the hit (strength 0..1), then settles back. */
+  knock(strength: number): void {
+    this.homeX ??= this.x;
+    this.scene.tweens.killTweensOf(this);
+    this.x = this.homeX;
+    const dx = 14 + 30 * strength;
+    this.scene.tweens.add({ targets: this, x: this.homeX - dx, duration: 60, yoyo: true, ease: 'Quad.easeOut', onComplete: () => this.setX(this.homeX!) });
+    this.scene.tweens.add({ targets: this, scale: 1 - 0.05 * strength, duration: 60, yoyo: true });
+  }
+
+  /** Staggered look: tilted, desaturated, cracked. */
+  setStaggered(on: boolean): void {
+    this.setAngle(on ? -7 : 0);
+    if (this.img) {
+      if (on) this.img.setTint(0x8a8070);
+      else this.img.clearTint();
+    } else this.box.setStrokeStyle(4, on ? 0xf1c40f : this.color);
+    if (on && !this.crack) {
+      const g = this.scene.add.graphics();
+      g.lineStyle(5, 0xf1c40f, 0.9);
+      g.beginPath();
+      g.moveTo(-this.boxW * 0.35, -this.boxH * 0.45);
+      g.lineTo(-this.boxW * 0.05, -this.boxH * 0.1);
+      g.lineTo(-this.boxW * 0.2, this.boxH * 0.05);
+      g.lineTo(this.boxW * 0.15, this.boxH * 0.45);
+      g.strokePath();
+      this.crack = g;
+      this.add(g);
+    } else if (!on && this.crack) {
+      this.crack.destroy();
+      this.crack = null;
+    }
   }
 
   flash(color = 0xffffff): void {

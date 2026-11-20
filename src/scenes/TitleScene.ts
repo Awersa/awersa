@@ -17,6 +17,7 @@ export class TitleScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
     const { data } = gameContext();
     this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.cameras.main.fadeIn(250, 18, 13, 11);
     const saved = RunSession.load();
     const records = loadRecords();
     if (this.textures.exists('bg.title')) {

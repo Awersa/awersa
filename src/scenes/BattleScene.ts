@@ -29,6 +29,7 @@ import { HpBar, SanityGauge, pips } from '../ui/Bar.ts';
 import { Button } from '../ui/Button.ts';
 import { LogPanel } from '../ui/LogPanel.ts';
 import { Portrait } from '../ui/portrait.ts';
+import { reducedMotion } from '../ui/fx.ts';
 import { playBgm, sfx } from '../game/audio.ts';
 import { SkillCard } from '../ui/SkillCard.ts';
 import { ClashAnimator } from '../ui/ClashAnimator.ts';
@@ -72,6 +73,9 @@ export class BattleScene extends Phaser.Scene {
   private animating = false;
   private speedBtn!: Button;
   private enemyPortrait!: Portrait;
+  private intentBox!: Phaser.GameObjects.Rectangle;
+  private lastIntent = '';
+  private panicVeil!: Phaser.GameObjects.Rectangle;
 
   constructor() {
     super(SceneKey.Battle);
@@ -85,6 +89,8 @@ export class BattleScene extends Phaser.Scene {
     }
     const { bal } = gameContext();
     this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.cameras.main.fadeIn(250, 18, 13, 11);
+    this.lastIntent = '';
     this.selected = null;
     this.overlay = null;
     this.cards = [];
@@ -130,6 +136,16 @@ export class BattleScene extends Phaser.Scene {
         return slot ? actionSkill(this.state[side], slot).damageType : null;
       },
       pose: (side, pose) => side === 'enemy' && this.enemyPortrait.setPose(pose),
+      knockback: (side, strength) => {
+        if (reducedMotion()) return;
+        if (side === 'enemy') this.enemyPortrait.knock(strength);
+        else {
+          this.tweens.killTweensOf(this.playerHp);
+          this.playerHp.x = 90;
+          this.tweens.add({ targets: this.playerHp, x: 90 + 10 + 18 * strength, duration: 50, yoyo: true, repeat: 1, onComplete: () => this.playerHp.setX(90) });
+        }
+      },
+      setStaggered: (side, on) => (side === 'enemy' ? this.enemyPortrait.setStaggered(on) : this.setPlayerStaggerLook(on)),
     });
     this.animator.setSpeed(getSettings().animSpeed);
     this.refresh();
@@ -170,7 +186,7 @@ export class BattleScene extends Phaser.Scene {
     this.enemyInfo = text(this, 90, 312, 32, COLORS.textDim);
 
     this.enemyPortrait = new Portrait(this, 230, 510, 280, 260, this.state.enemy.asset, '적', COLORS.red);
-    this.add.rectangle(700, 510, 580, 260, COLORS.panel).setStrokeStyle(4, COLORS.red);
+    this.intentBox = this.add.rectangle(700, 510, 580, 260, COLORS.panel).setStrokeStyle(4, COLORS.red);
     text(this, 430, 395, 30, COLORS.textDim).setText('적의 의도');
     this.intentText = text(this, 430, 435, 38).setWordWrapWidth(540, true).setLineSpacing(6);
 
@@ -187,7 +203,7 @@ export class BattleScene extends Phaser.Scene {
     // Hand
     for (let i = 0; i < bal.deck.handSize; i++) {
       const x = bal.deck.handSize === 1 ? CX : 285 + i * 510;
-      this.cards.push(new SkillCard(this, x, 1490, () => this.pick(i)));
+      this.cards.push(new SkillCard(this, x, 1490, () => this.pick(i), i));
     }
 
     this.defenseBtn = new Button(this, 250, 1800, '방어', () => this.pick('defense'), {
@@ -206,6 +222,7 @@ export class BattleScene extends Phaser.Scene {
     this.enemyStatuses = text(this, 230, 600, 28, '#ffd6a0').setOrigin(0.5).setAlign('center').setLineSpacing(4);
     this.playerStatuses = text(this, 90, 1288, 30, '#ffd6a0').setOrigin(0, 0.5);
 
+    this.panicVeil = this.add.rectangle(CX, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x5a1d7a, 0).setDepth(350).setVisible(false);
     this.log = new LogPanel(this);
   }
 
@@ -253,7 +270,40 @@ export class BattleScene extends Phaser.Scene {
     } else {
       this.intentText.setText(isStaggered(e) ? '흐트러짐 — 행동 불가' : '—').setColor(COLORS.textDim);
     }
+    if (this.intentText.text !== this.lastIntent) {
+      if (this.lastIntent !== '' && getSettings().animSpeed !== 'skip') {
+        this.intentText.setAlpha(0).setX(460);
+        this.tweens.add({ targets: this.intentText, alpha: 1, x: 430, duration: 240, ease: 'Cubic.easeOut' });
+        this.intentBox.setStrokeStyle(8, 0xff8a7a);
+        this.time.delayedCall(260, () => this.intentBox.setStrokeStyle(4, COLORS.red));
+      }
+      this.lastIntent = this.intentText.text;
+    }
 
+    this.enemyPortrait.setStaggered(isStaggered(e));
+    this.setPlayerStaggerLook(isStaggered(p));
+    this.setPanicVeil(p.panic !== 'none');
+  }
+
+  private setPlayerStaggerLook(on: boolean): void {
+    this.playerName.setColor(on ? '#f1c40f' : COLORS.text);
+    this.tweens.killTweensOf(this.playerName);
+    this.playerName.setAngle(0);
+    if (on && !reducedMotion()) this.tweens.add({ targets: this.playerName, angle: -4, duration: 120, yoyo: true, repeat: 3 });
+  }
+
+  private setPanicVeil(on: boolean): void {
+    this.tweens.killTweensOf(this.panicVeil);
+    this.panicVeil.setVisible(on).setFillStyle(0x5a1d7a, on ? 0.12 : 0);
+    if (on && !reducedMotion()) this.tweens.add({ targets: this.panicVeil, fillAlpha: 0.24, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+
+  /** Small "N턴" badge between turns. */
+  private turnBadge(): void {
+    if (getSettings().animSpeed === 'skip' || this.state.outcome) return;
+    const t = text(this, CX, 700, 46, '#ffe08a').setOrigin(0.5).setText(`${this.state.turn}턴`).setDepth(420).setAlpha(0).setScale(0.7);
+    this.tweens.add({ targets: t, alpha: 1, scale: 1, duration: 180, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: t, alpha: 0, y: 670, delay: 650, duration: 300, onComplete: () => t.destroy() });
   }
 
   /** Hand cards and the action button. */
@@ -366,6 +416,7 @@ export class BattleScene extends Phaser.Scene {
       this.resultText.setText(lines.length > 9 ? ['…', ...lines.slice(-8)].join('\n') : lines.join('\n'));
       this.refresh();
       if (this.state.outcome) this.showEnd(events.at(-1));
+      else this.turnBadge();
     });
   }
 

@@ -360,3 +360,34 @@ First-floor loss stays at about 6–8%.
 - Coin flip: clear bell "ding" (3136 Hz + a 10 Hz-detuned partner for shimmer, 0.7 s ring).
 - Coin break: high flicked "ping" (3900→4186 Hz in 20 ms, 0.38 s).
 - Clash win: **no sound**. The user disliked every jingle, so the coin sounds carry the moment. A file for `sfx.clash.win` would still play if one is ever added.
+
+## Animation detail pass (user request; all four areas, user said "do as you like", target phone S26 Ultra)
+- **Clash**:
+  - Coins drop in from their side.
+  - Each flip hops up 34 px, spins, lands with a squash; heads glint white.
+  - Power numbers count up from the previous value, then bounce.
+  - Each round, both rows lunge into the center line and a spark burst fires, sized by the power gap.
+  - The losing coin cracks, bursts into shards and falls while the rest of its row recoils.
+  - The clash winner's coins flash gold.
+- **Hits**:
+  - Hit-stop of 60 ms (110 ms for crits) before impact.
+  - Damage-type particles: white streaks for slash, yellow sparks for pierce, dust for blunt.
+  - Knockback: the enemy portrait is pushed away; for the player, the HP bar jolts.
+  - Damage numbers pop in large, sized by damage. Crits are gold, tilted, with "치명!" and a soft screen flash.
+  - HP bar: the red fill drops at once while a white "ghost" drains after it.
+  - Camera shake scales with damage.
+  - Gift triggers and heals are now animated too.
+- **Cards / UI**:
+  - A new card dealt into a hand slot slides up with a slight spin; the opening hand is dealt one card after the other.
+  - The selected card lifts.
+  - A new enemy intent slides in and the box border flashes.
+  - "N턴" badge between turns.
+  - Every scene fades in.
+- **Status / stagger / panic**:
+  - Status application and triggers burst per status: blood drops for bleed, rising embers for burn, dust for tremor, glass shards for rupture, sinking blue bubbles for sinking, sparkles for poise, electric streaks for charge.
+  - Stagger: shatter burst and a heavy shake. The enemy portrait stays tilted, desaturated and cracked while staggered; the player's name turns yellow and trembles.
+  - Panic: a purple flash, then a pulsing purple veil while panic is pending or active.
+- **Comfort / performance**:
+  - Particle bursts are ≤ 16 particles and < 1 s, and destroy themselves.
+  - "연출 끔" skips all of it.
+  - OS "reduce motion" disables shakes, flashes, knockback and card motion.

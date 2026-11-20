@@ -3,6 +3,7 @@ import { availableAssets } from '../assets/registry.ts';
 import { COLORS, FONT, GAME_WIDTH } from '../config/display.ts';
 import { gameContext } from '../game/context.ts';
 import { ensurePlaceholderTextures } from '../ui/placeholders.ts';
+import { ensureFxTextures } from '../ui/fx.ts';
 import { SceneKey } from './keys.ts';
 
 /** Loads bundled assets (only those that exist), validates game data, then goes to the title. */
@@ -34,6 +35,7 @@ export class BootScene extends Phaser.Scene {
       return;
     }
     ensurePlaceholderTextures(this);
+    ensureFxTextures(this);
     this.scene.start(SceneKey.Title);
   }
 }

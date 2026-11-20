@@ -26,6 +26,7 @@ export class GameOverScene extends Phaser.Scene {
   create(d: GameOverData): void {
     const { data } = gameContext();
     this.cameras.main.setBackgroundColor(COLORS.bg);
+    this.cameras.main.fadeIn(250, 18, 13, 11);
     stopBgm();
     const ch = data.players.find((p) => p.id === d.characterId);
     const rec = loadRecords();
