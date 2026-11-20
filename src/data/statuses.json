@@ -1,0 +1,51 @@
+[
+  {
+    "id": "bleed",
+    "name": "출혈",
+    "triggers": [{ "on": "coinThrown", "action": "damage" }],
+    "turnEndDecay": 0,
+    "description": "공격 코인을 던질 때마다 위력만큼 피해, 횟수 -1"
+  },
+  {
+    "id": "burn",
+    "name": "화상",
+    "triggers": [{ "on": "turnEnd", "action": "damage" }],
+    "turnEndDecay": 0,
+    "description": "턴 종료 시 위력만큼 피해, 횟수 -1"
+  },
+  {
+    "id": "rupture",
+    "name": "파열",
+    "triggers": [{ "on": "hitTaken", "action": "damage" }],
+    "turnEndDecay": 0,
+    "description": "피격 시 위력만큼 추가 피해, 횟수 -1"
+  },
+  {
+    "id": "sinking",
+    "name": "침잠",
+    "triggers": [{ "on": "hitTaken", "action": "sanityLoss" }],
+    "turnEndDecay": 0,
+    "description": "피격 시 위력만큼 정신력 감소(정신력이 없으면 피해), 횟수 -1"
+  },
+  {
+    "id": "tremor",
+    "name": "진동",
+    "triggers": [{ "on": "burst", "action": "staggerDamage" }],
+    "turnEndDecay": 1,
+    "description": "진동 폭발 시 위력만큼 흐트러짐에 가까워짐, 횟수 -1. 턴 종료마다 횟수 -1"
+  },
+  {
+    "id": "poise",
+    "name": "호흡",
+    "triggers": [{ "on": "coinHit", "action": "crit" }],
+    "turnEndDecay": 1,
+    "description": "적중 시 위력×5% 확률로 치명타(×1.2), 치명타 시 횟수 -1. 턴 종료마다 횟수 -1"
+  },
+  {
+    "id": "charge",
+    "name": "충전",
+    "triggers": [],
+    "turnEndDecay": 1,
+    "description": "충전을 소모하는 스킬을 강화하는 자원. 턴 종료마다 횟수 -1"
+  }
+]

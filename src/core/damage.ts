@@ -1,6 +1,4 @@
 import type { Balance } from './balance.ts';
-import type { Rng } from './rng.ts';
-import { headsChance } from './skill.ts';
 import type { BattleEvent, DamageType, EffectiveSkill, UnitState } from './types.ts';
 
 export function isStaggered(u: UnitState): boolean {
@@ -58,34 +56,6 @@ export function applyDamage(target: UnitState, amount: number, bal: Balance, eve
     // +1 because the countdown also ticks at the end of the current turn.
     target.staggerTurnsLeft = bal.stagger.recoverAfterTurns + 1;
     events.push({ t: 'stagger', side: target.side });
-  }
-}
-
-/**
- * One-sided attack: throws `coins` remaining coins one at a time. Power accumulates
- * (base, then +coinPower for each heads so far) and every coin hits with the current power.
- */
-export function oneSidedAttack(
-  attacker: UnitState,
-  skill: EffectiveSkill,
-  coins: number,
-  target: UnitState,
-  clashCount: number,
-  rng: Rng,
-  bal: Balance,
-  events: BattleEvent[],
-): void {
-  let power = skill.basePower;
-  const chance = headsChance(attacker, bal);
-  for (let c = 0; c < coins; c++) {
-    if (target.hp <= 0) break;
-    const heads = rng.chance(chance);
-    if (heads) power += skill.coinPower;
-    const hitPower = Math.max(0, power);
-    const dmg = computeDamage({ power: hitPower, skill, attacker, target, clashCount }, bal);
-    const after: BattleEvent[] = []; // stagger is reported after the hit that caused it
-    applyDamage(target, dmg, bal, after);
-    events.push({ t: 'coinHit', attacker: attacker.side, coin: c, heads, power: hitPower, damage: dmg, targetHp: target.hp }, ...after);
   }
 }
 

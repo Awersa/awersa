@@ -12,6 +12,11 @@ import {
   playerStatus,
   powerRange,
   takeTurn,
+  actionSkill,
+  statusName,
+  stackLabel,
+  type Balance,
+  type EffectiveSkill,
   DAMAGE_TYPES,
   type BattleEvent,
   type BattleState,
@@ -40,7 +45,10 @@ const text = (scene: Phaser.Scene, x: number, y: number, size: number, color: st
 export class BattleScene extends Phaser.Scene {
   private state!: BattleState;
   private names!: Record<Side, string>;
-  private selected: number | null = null;
+  private selected: number | 'defense' | null = null;
+  private defenseBtn!: Button;
+  private enemyStatuses!: Phaser.GameObjects.Text;
+  private playerStatuses!: Phaser.GameObjects.Text;
 
   private enemyName!: Phaser.GameObjects.Text;
   private enemyHp!: HpBar;
@@ -92,7 +100,8 @@ export class BattleScene extends Phaser.Scene {
     );
     this.animator = new ClashAnimator(this, {
       names: this.names,
-      coinCount: (side, slot) => effectiveSkill(this.state[side], slot).coinCount,
+      coinCount: (side, slot) => actionSkill(this.state[side], slot).coinCount,
+      statusLabel: (id) => statusName(bal, id),
       setHp: (side, hp, duration) => (side === 'player' ? this.playerHp : this.enemyHp).tweenHp(hp, duration),
       setSanity: (side, value) => side === 'player' && this.sanity.setValue(value, headsChance({ hasSanity: true, sanity: value }, bal)),
       setClashWins: (side, wins, needed) => {
@@ -159,12 +168,21 @@ export class BattleScene extends Phaser.Scene {
       this.cards.push(new SkillCard(this, x, 1490, () => this.pick(i)));
     }
 
-    this.actionBtn = new Button(this, CX, 1800, '합 개시', () => this.confirm(), {
-      width: GAME_WIDTH - 120,
+    this.defenseBtn = new Button(this, 250, 1800, '방어', () => this.pick('defense'), {
+      width: 400,
       height: 170,
-      fontSize: 60,
+      fontSize: 34,
+      fill: 0x1f2a33,
+      stroke: 0x6fa8d6,
+    });
+    this.actionBtn = new Button(this, 765, 1800, '합 개시', () => this.confirm(), {
+      width: 510,
+      height: 170,
+      fontSize: 52,
       fill: 0x5a2a1a,
     });
+    this.enemyStatuses = text(this, 230, 600, 28, '#ffd6a0').setOrigin(0.5).setAlign('center').setLineSpacing(4);
+    this.playerStatuses = text(this, 90, 1288, 30, '#ffd6a0').setOrigin(0, 0.5);
 
     this.log = new LogPanel(this);
   }
@@ -192,14 +210,22 @@ export class BattleScene extends Phaser.Scene {
     this.playerHp.setValue(p.hp, p.maxHp, p.staggerThresholds, p.nextStaggerIndex);
     this.sanity.setValue(p.sanity, headsChance(p, bal));
     this.playerInfo.setText(`${pips(p.clashWins, bal.battle.playerClashWinsToWin)}${this.statusTag(p)}`);
+    this.enemyStatuses.setText(this.statusList(e, '\n'));
+    this.playerStatuses.setText(this.statusList(p, ' · '));
 
     // Enemy intent
-    if (this.state.enemyIntent) {
+    if (this.state.enemyIntent === 'defense') {
+      const sk = actionSkill(e, 'defense');
+      const r = powerRange(sk);
+      this.intentText
+        .setText(`방어: ${DEFENSE_KO[sk.type]}\n${sk.name}\n위력 ${r.min} ~ ${r.max} · ${DEFENSE_HINT[sk.type]}`)
+        .setColor('#9fd0ff');
+    } else if (this.state.enemyIntent) {
       const sk = effectiveSkill(e, this.state.enemyIntent);
       const r = powerRange(sk);
       const dmg = maxOneSidedDamage(e, sk, sk.coinCount, p, sk.coinCount, bal);
       this.intentText.setText(
-        `${sk.slot} ${sk.name}\n위력 ${r.min} ~ ${r.max} · 코인 ${sk.coinCount}개\n${DAMAGE_TYPE_KO[sk.damageType]} · 최대 피해 ${dmg}`,
+        `${sk.slot} ${sk.name}\n위력 ${r.min} ~ ${r.max} · 코인 ${sk.coinCount}개\n${DAMAGE_TYPE_KO[sk.damageType]}${effectSummary(sk, bal, ' · ')} · 최대 ${dmg}`,
       );
       this.intentText.setColor(dmg >= p.hp ? COLORS.danger : COLORS.text);
     } else {
@@ -219,18 +245,44 @@ export class BattleScene extends Phaser.Scene {
       const sk = effectiveSkill(p, slot);
       const r = powerRange(sk);
       const maxDamage = maxOneSidedDamage(p, sk, sk.coinCount, e, sk.coinCount, bal);
-      card.show({ skill: sk, ...r, maxDamage, canKill: maxDamage >= e.hp, killIsLoss: bal.battle.enemyHpZero === 'lose' });
+      card.show({
+        skill: sk,
+        ...r,
+        maxDamage,
+        canKill: maxDamage >= e.hp,
+        killIsLoss: bal.battle.enemyHpZero === 'lose',
+        effects: effectSummary(sk, bal, ''),
+      });
       card.setEnabled(status.canChoose && !this.state.outcome && !this.animating);
       card.setSelected(this.selected === i);
     });
 
+    // Defense button
+    if (p.defenseSkill) {
+      const d = actionSkill(p, 'defense');
+      const r = powerRange(d);
+      const sel = this.selected === 'defense';
+      this.defenseBtn.setText(`${sel ? '▶ ' : ''}${DEFENSE_KO[d.type]}: ${d.name}\n위력 ${r.min}~${r.max}`);
+      this.defenseBtn.setEnabled(status.canDefend && !this.state.outcome && !this.animating);
+      this.defenseBtn.setHighlight(sel);
+    } else this.defenseBtn.setVisible(false);
+
     if (this.state.outcome) this.actionBtn.setEnabled(false);
     else if (this.animating) this.actionBtn.setText('스킵 ▶▶').setEnabled(true);
     else if (!status.canChoose) {
-      this.actionBtn.setText(status.reason === 'stagger' ? '흐트러짐 — 턴 넘기기' : '패닉 — 무작위 행동').setEnabled(true);
+      this.actionBtn.setText(status.reason === 'stagger' ? '흐트러짐\n턴 넘기기' : '패닉\n무작위 행동').setEnabled(true);
     } else {
-      this.actionBtn.setText(this.selected === null ? '스킬을 고르세요' : '합 개시').setEnabled(this.selected !== null);
+      this.actionBtn
+        .setText(this.selected === null ? '스킬 선택' : this.selected === 'defense' ? '방어 개시' : '합 개시')
+        .setEnabled(this.selected !== null);
     }
+  }
+
+  private statusList(u: UnitState, sep: string): string {
+    const { bal } = gameContext();
+    return Object.entries(u.statuses)
+      .map(([id, s]) => stackLabel(statusName(bal, id), s.potency, s.count))
+      .join(sep);
   }
 
   private statusTag(u: UnitState): string {
@@ -246,8 +298,9 @@ export class BattleScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- input
 
-  private pick(i: number): void {
+  private pick(i: number | 'defense'): void {
     if (this.animating || this.state.outcome || !playerStatus(this.state).canChoose) return;
+    if (i === 'defense' && !playerStatus(this.state).canDefend) return;
     this.selected = this.selected === i ? null : i;
     this.refresh();
   }
@@ -372,4 +425,16 @@ export class BattleScene extends Phaser.Scene {
 
 function speedLabel(s: AnimSpeed): string {
   return s === 'skip' ? '연출 끔' : `×${s}`;
+}
+
+const DEFENSE_KO = { attack: '공격', guard: '수비', evade: '회피', counter: '반격' } as const;
+const DEFENSE_HINT = { attack: '', guard: '피해 감소', evade: '코인 무효화', counter: '맞받아 합' } as const;
+
+/** Short list of the statuses a skill applies, e.g. "출혈·호흡" (prefixed with `prefix` when non-empty). */
+function effectSummary(sk: EffectiveSkill, bal: Balance, prefix: string): string {
+  const ids = new Set<string>();
+  for (const e of [...(sk.onUse ?? []), ...(sk.coinEffects ?? []).flat()]) ids.add(e.type === 'burst' ? `${e.status}!` : e.status);
+  if (ids.size === 0) return '';
+  const names = [...ids].map((id) => (id.endsWith('!') ? `${statusName(bal, id.slice(0, -1))}폭발` : statusName(bal, id)));
+  return prefix + names.join('·');
 }

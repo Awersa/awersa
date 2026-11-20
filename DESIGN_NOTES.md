@@ -187,3 +187,65 @@ First-floor loss stays at about 6–8%.
 |---|---|---|---|---|
 | 한결 | 6% | 50% / 39% / 22% | 13% / 4% / 1% | 24 |
 | 도담 | 8% | 46% / 28% / 15% | 11% / 2% / 0.3% | 21 |
+
+## Milestone 5 — defense skills + status effects
+
+### Defense skills
+- The **defense button** is always available next to "합 개시". It doesn't use or cycle hand cards. Tap it to select, then press "방어 개시".
+- **수비 (guard)**: flips its coins once. Shield = power × 1.5 (`defense.guardShieldMultiplier`). The shield absorbs damage from the incoming one-sided attack, hit by hit. Hits show "막음 N".
+- **회피 (evade)**: for each incoming coin, the evade skill rolls and compares its power with that coin's hit power. If evade is higher, the coin does nothing and the evader gains +5 sanity (`defense.evadeSanity`). The first failed evade breaks it, and the remaining coins hit normally.
+- **반격 (counter)**: an incoming attack becomes a normal clash against the counter skill (sanity changes and clash bonus apply).
+- A defense with no incoming attack is wasted ("공격이 없어 무의미").
+- **Enemies defend too**:
+  - 경비 인형: guard "장갑 전개"
+  - 그림자 들개: evade "그림자 회피"
+  - Boss: counter "역행하는 초침"
+  - The intent box shows it in blue ("방어: 수비 …"). How often each enemy defends is set by `aiWeights.defense`.
+
+### Status effects (data-driven)
+- `src/data/statuses.json` defines each status as **triggers (when) × actions (what)** plus a turn-end decay. The engine (`src/core/status.ts`) only knows the generic triggers (`coinThrown`, `hitTaken`, `turnEnd`, `burst`, `coinHit`) and actions (`damage`, `sanityLoss`, `staggerDamage`, `crit`). A new status that combines these needs **no code**. There is a test for this ("poison").
+- Skills apply statuses through `coinEffects` (on hit, per coin) and `onUse`. Effect types:
+  - `apply`: add potency/count to the target or to yourself
+  - `burst`: trigger the status's burst, e.g. tremor
+  - `spend`: use up N of a status for +power this use, e.g. charge
+- Stacking: potency and count both add up, capped at 99. A status disappears when its count reaches 0. All statuses are cleared at the start of each battle.
+
+### Assumptions
+- **Bleed** fires per coin *thrown in a one-sided attack*, not per clash flip.
+- **Tremor burst** counts its potency as extra HP loss for stagger checks only. It can trigger an early stagger without dealing real damage. Tremor count also drops by 1 every turn end.
+- **Poise**: crit chance = potency × 5% (`status.critChancePerPotency`). The spec literally says "potency%", which would be 0.01, but that is too weak with small potencies. A crit multiplies damage by 1.2 and uses 1 count. Poise count also drops by 1 every turn end.
+- **Charge**: a count-only resource that drops by 1 every turn end. 도담's S1 gives 2 charge. S3 spends 3 charge for +6 base power.
+- **Sinking** on a unit without sanity deals its potency as damage instead.
+- **Order of onUse effects**: by speed, with the player first on ties.
+- **Turn-end damage (burn)** can end the battle; the outcome is checked again after turn end.
+
+### Character kits
+- **한결 (slash · bleed/poise)**:
+  - S1: bleed on its 2nd coin
+  - S2: bleed 1/1 on every coin
+  - S3: gives itself poise 3/2, then bleed 3/2 on its last coin
+  - Defense: evade
+- **도담 (blunt · tremor/charge)**:
+  - S1: +2 charge, tremor 3/2
+  - S2: tremor, then a burst on its last coin
+  - S3: spends 3 charge for +6, then a burst on its last coin
+  - Defense: guard
+- **Enemy statuses**:
+  - thug: bleed
+  - hound: rupture
+  - boss: sinking on S1, burn on S3
+
+### Balance (N=3000)
+- Statuses made players much stronger (boss clear went to ~70%). Retuned:
+  - enemy level +2 per floor
+  - acceleration divisor 40
+  - normal enemy HP 180 / 210 / 165, boss 360
+  - normal enemies' S1 +1 base power
+  - 도담 S1 +1 base power
+
+| | 1층 패배 | 5층 보스 돌파 (잘/전체만/무작위) | 10층 (잘/전체만/무작위) | 최고 |
+|---|---|---|---|---|
+| 한결 | 8% | 56% / 46% / 28% | 10.5% / 3% / 0.5% | 23 |
+| 도담 | 5% | 65% / 46% / 29% | 12.5% / 2% / 0.2% | 23 |
+
+- The simulator's "smart" player defends when the enemy's attack clearly outclasses its best card. Measured this way, defense barely changes win rates (`npm run sim -- --no-defense` to compare). Its value is situational: dodging a clash you'd lose, gaining sanity with evade, or blunting a boss S3. Human playtesting will tell more.

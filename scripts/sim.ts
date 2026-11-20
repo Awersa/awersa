@@ -34,8 +34,9 @@ import {
 } from '../src/core/index.ts';
 
 const readJson = (p: string): unknown => JSON.parse(readFileSync(new URL(`../src/data/${p}`, import.meta.url), 'utf8'));
-const bal = readJson('balance.json') as Balance;
+const bal = { ...(readJson('balance.json') as object), statusDefs: readJson('statuses.json') } as Balance;
 const rawData = {
+  statuses: readJson('statuses.json'),
   skills: readJson('skills.json'),
   players: readJson('characters.json'),
   enemies: readJson('enemies.json'),
@@ -57,10 +58,11 @@ const { values: args } = parseArgs({
     enemy: { type: 'string' },
     floor: { type: 'string', default: '1' },
     n: { type: 'string', default: '2000' },
+    'no-defense': { type: 'boolean', default: false },
   },
 });
 
-type Policy = (s: BattleState) => number;
+type Policy = (s: BattleState) => number | 'defense';
 const randomPolicy = (rng: Rng): Policy => (s) => rng.int(0, s.player.hand.length - 1);
 /**
  * Picks the card with the highest expected clash power, but avoids cards whose best case
@@ -76,8 +78,18 @@ const smartPolicy: Policy = (s) => {
   });
   const safe = scored.filter((x) => !x.lethal);
   const pool = safe.length > 0 ? safe : scored.map((x) => ({ ...x, value: -x.value }));
-  return pool.reduce((a, b) => (b.value > a.value ? b : a)).i;
+  const best = pool.reduce((a, b) => (b.value > a.value ? b : a));
+  // Defend when the enemy's attack clearly outclasses our best card.
+  const intent = s.enemyIntent;
+  if (useDefense && p.defenseSkill && intent && intent !== 'defense') {
+    const ek = effectiveSkill(s.enemy, intent);
+    const eValue = ek.basePower + ek.coinPower * ek.coinCount * 0.5 + ek.coinCount * 0.5;
+    if (eValue - best.value >= defenseMargin) return 'defense';
+  }
+  return best.i;
 };
+let useDefense = true;
+const defenseMargin = 3;
 
 function fight(player: UnitState, enemy: UnitState, seed: number, policy: Policy, log = false): BattleState {
   const names = { player: player.name, enemy: enemy.name };
@@ -106,6 +118,7 @@ if (args.log) {
 }
 
 const N = Math.max(1, Number(args.n) || 2000);
+useDefense = !args['no-defense'];
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`.padStart(6);
 
 console.log(`\n[1층 단판 승률] (N=${N}, 풀 HP 기준)  똑똑한 선택 / 무작위 선택`);

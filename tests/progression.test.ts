@@ -82,7 +82,7 @@ describe('data validation', () => {
   });
 
   it('catches broken data', () => {
-    const d = data() as unknown as Record<"skills" | "players" | "enemies" | "rewards", unknown[]>;
+    const d = data() as unknown as Record<"statuses" | "skills" | "players" | "enemies" | "rewards", unknown[]>;
     (d.skills[0] as Record<string, unknown>).coinCount = 0;
     (d.skills[1] as Record<string, unknown>).basePower = Number.NaN;
     (d.players[0] as Record<string, unknown>).skills = { S1: 'nope', S2: 'hk_s2', S3: 'hk_s3' };
@@ -96,7 +96,7 @@ describe('data validation', () => {
   });
 
   it('rejects prototype-polluting ids', () => {
-    const d = data() as unknown as Record<"skills" | "players" | "enemies" | "rewards", unknown[]>;
+    const d = data() as unknown as Record<"statuses" | "skills" | "players" | "enemies" | "rewards", unknown[]>;
     (d.players[0] as Record<string, unknown>).skills = { S1: '__proto__', S2: 'hk_s2', S3: 'hk_s3' };
     expect(validateGameData(d).some((e) => e.includes('unknown skill __proto__'))).toBe(true);
   });

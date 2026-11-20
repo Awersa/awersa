@@ -1,11 +1,14 @@
 import { REWARD_KINDS, type RewardDef } from './rewards.ts';
 import {
   DAMAGE_TYPES,
+  STATUS_ACTIONS,
+  STATUS_TRIGGERS,
   RESISTANCE_GRADES,
   SINS,
   SKILL_SLOTS,
   SKILL_TYPES,
   type SkillDef,
+  type StatusDef,
   type UnitDef,
 } from './types.ts';
 
@@ -25,7 +28,37 @@ const isOneOf = <T extends string>(v: unknown, list: readonly T[]): v is T =>
   typeof v === 'string' && (list as readonly string[]).includes(v);
 const ID = /^[a-z0-9_.-]{1,48}$/;
 
-export function validateSkill(s: unknown, where: string): string[] {
+export function validateEffect(x: unknown, where: string, statuses: ReadonlySet<string>): string[] {
+  if (!isObj(x)) return [`${where}: effect is not an object`];
+  const e: string[] = [];
+  if (x.type !== 'apply' && x.type !== 'burst' && x.type !== 'spend') e.push(`${where}: effect type must be apply/burst/spend`);
+  if (typeof x.status !== 'string' || !statuses.has(x.status)) e.push(`${where}: unknown status ${String(x.status)}`);
+  if (x.potency !== undefined && !isInt(x.potency, 0, 99)) e.push(`${where}: potency must be 0..99`);
+  if (x.count !== undefined && !isInt(x.count, 0, 99)) e.push(`${where}: count must be 0..99`);
+  if (x.power !== undefined && !isInt(x.power, -99, 99)) e.push(`${where}: power must be -99..99`);
+  if (x.target !== undefined && x.target !== 'self' && x.target !== 'target') e.push(`${where}: target must be self/target`);
+  if (x.type === 'apply' && (!isInt(x.count, 1, 99))) e.push(`${where}: apply needs count >= 1`);
+  return e;
+}
+
+export function validateStatus(x: unknown, where: string): string[] {
+  if (!isObj(x)) return [`${where}: not an object`];
+  const e: string[] = [];
+  if (!isStr(x.id) || !ID.test(x.id)) e.push(`${where}: bad id`);
+  if (!isStr(x.name)) e.push(`${where}: bad name`);
+  if (!isStr(x.description, 300)) e.push(`${where}: bad description`);
+  if (!isInt(x.turnEndDecay, 0, 99)) e.push(`${where}: turnEndDecay must be 0..99`);
+  if (!Array.isArray(x.triggers)) e.push(`${where}: triggers must be an array`);
+  else
+    x.triggers.forEach((t, i) => {
+      if (!isObj(t) || !isOneOf(t.on, STATUS_TRIGGERS) || !isOneOf(t.action, STATUS_ACTIONS))
+        e.push(`${where}.triggers[${i}]: needs on (${STATUS_TRIGGERS.join('/')}) and action (${STATUS_ACTIONS.join('/')})`);
+      else if (t.consume !== undefined && !isInt(t.consume, 0, 99)) e.push(`${where}.triggers[${i}]: bad consume`);
+    });
+  return e;
+}
+
+export function validateSkill(s: unknown, where: string, statuses: ReadonlySet<string> = new Set()): string[] {
   const e: string[] = [];
   if (!isObj(s)) return [`${where}: not an object`];
   if (!isStr(s.id) || !ID.test(s.id)) e.push(`${where}: bad id`);
@@ -40,8 +73,16 @@ export function validateSkill(s: unknown, where: string): string[] {
   if (s.coinEffects !== undefined) {
     if (!Array.isArray(s.coinEffects) || s.coinEffects.some((c) => !Array.isArray(c)))
       e.push(`${where}: coinEffects must be an array of arrays`);
-    else if (isInt(s.coinCount) && s.coinEffects.length > s.coinCount)
-      e.push(`${where}: more coinEffects than coins`);
+    else {
+      if (isInt(s.coinCount) && s.coinEffects.length > s.coinCount) e.push(`${where}: more coinEffects than coins`);
+      (s.coinEffects as unknown[][]).forEach((list, c) =>
+        list.forEach((x, i) => e.push(...validateEffect(x, `${where}.coinEffects[${c}][${i}]`, statuses))),
+      );
+    }
+  }
+  if (s.onUse !== undefined) {
+    if (!Array.isArray(s.onUse)) e.push(`${where}: onUse must be an array`);
+    else s.onUse.forEach((x, i) => e.push(...validateEffect(x, `${where}.onUse[${i}]`, statuses)));
   }
   return e;
 }
@@ -83,7 +124,7 @@ export function validateUnit(u: unknown, where: string, skills: ReadonlyMap<stri
     }
   }
   if (u.aiWeights !== undefined) {
-    if (!isObj(u.aiWeights) || Object.entries(u.aiWeights).some(([k, v]) => !isOneOf(k, SKILL_SLOTS) || !isNum(v, 0, 1000)))
+    if (!isObj(u.aiWeights) || Object.entries(u.aiWeights).some(([k, v]) => !(isOneOf(k, SKILL_SLOTS) || k === 'defense') || !isNum(v, 0, 1000)))
       e.push(`${where}: bad aiWeights`);
   }
   if (u.boss !== undefined && typeof u.boss !== 'boolean') e.push(`${where}: boss must be boolean`);
@@ -109,13 +150,14 @@ export function validateReward(r: unknown, where: string): string[] {
 }
 
 export interface GameData {
+  statuses: StatusDef[];
   skills: SkillDef[];
   players: UnitDef[];
   enemies: UnitDef[];
   rewards: RewardDef[];
 }
 
-export function validateGameData(d: { skills: unknown; players: unknown; enemies: unknown; rewards: unknown }): string[] {
+export function validateGameData(d: { statuses: unknown; skills: unknown; players: unknown; enemies: unknown; rewards: unknown }): string[] {
   const errors: string[] = [];
   const skills = new Map<string, SkillDef>();
   const arr = (v: unknown, name: string): unknown[] => {
@@ -133,9 +175,14 @@ export function validateGameData(d: { skills: unknown; players: unknown; enemies
     }
   };
 
+  const st = arr(d.statuses, 'statuses');
+  st.forEach((x, i) => errors.push(...validateStatus(x, `statuses[${i}]`)));
+  dup(st.map((x) => (isObj(x) ? x.id : undefined)), 'statuses');
+  const statusIds = new Set(st.filter((x) => isObj(x) && typeof x.id === 'string').map((x) => (x as Obj).id as string));
+
   const sk = arr(d.skills, 'skills');
   sk.forEach((s, i) => {
-    const errs = validateSkill(s, `skills[${i}]`);
+    const errs = validateSkill(s, `skills[${i}]`, statusIds);
     errors.push(...errs);
     if (errs.length === 0) skills.set((s as SkillDef).id, s as SkillDef);
   });

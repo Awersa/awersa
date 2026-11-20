@@ -1,4 +1,4 @@
-import type { ResistanceGrade, SkillSlot } from './types.ts';
+import type { ResistanceGrade, SkillSlot, StatusDef } from './types.ts';
 
 /** Shape of src/data/balance.json. The engine receives it as a parameter (never imports JSON). */
 export interface Balance {
@@ -30,7 +30,22 @@ export interface Balance {
     /** Damage numbers: minimum damage of a hit whose (power × multiplier) is > 0. */
     minHitDamage: number;
   };
-  ai: { defaultWeights: Record<SkillSlot, number> };
+  ai: { defaultWeights: Record<SkillSlot, number> & { defense?: number } };
+  defense: {
+    /** Guard shield = guard power × this. */
+    guardShieldMultiplier: number;
+    /** Sanity gained per successful evade. */
+    evadeSanity: number;
+  };
+  status: {
+    critMultiplier: number;
+    /** Poise-style crit chance per potency (spec says potency% → 0.01; default 0.05). */
+    critChancePerPotency: number;
+    maxPotency: number;
+    maxCount: number;
+  };
+  /** Status definitions, merged in from src/data/statuses.json when the game data loads. */
+  statusDefs: StatusDef[];
   floor: {
     hpPerFloor: number;
     basePowerEveryFloors: number;

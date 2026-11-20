@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { applyDamage, computeDamage, levelModifier, maxOneSidedDamage, oneSidedAttack } from '../src/core/damage.ts';
+import { applyDamage, computeDamage, levelModifier, maxOneSidedDamage } from '../src/core/damage.ts';
+import { oneSidedAttack } from '../src/core/attack.ts';
 import { effectiveSkill } from '../src/core/skill.ts';
 import type { BattleEvent } from '../src/core/types.ts';
 import { bal, makeUnit, scriptedRng } from './helpers.ts';

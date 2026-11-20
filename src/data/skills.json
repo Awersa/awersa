@@ -7,7 +7,18 @@
     "sin": "wrath",
     "basePower": 5,
     "coinPower": 3,
-    "coinCount": 2
+    "coinCount": 2,
+    "coinEffects": [
+      [],
+      [
+        {
+          "type": "apply",
+          "status": "bleed",
+          "potency": 2,
+          "count": 1
+        }
+      ]
+    ]
   },
   {
     "id": "hk_s2",
@@ -17,7 +28,33 @@
     "sin": "lust",
     "basePower": 4,
     "coinPower": 3,
-    "coinCount": 3
+    "coinCount": 3,
+    "coinEffects": [
+      [
+        {
+          "type": "apply",
+          "status": "bleed",
+          "potency": 1,
+          "count": 1
+        }
+      ],
+      [
+        {
+          "type": "apply",
+          "status": "bleed",
+          "potency": 1,
+          "count": 1
+        }
+      ],
+      [
+        {
+          "type": "apply",
+          "status": "bleed",
+          "potency": 1,
+          "count": 1
+        }
+      ]
+    ]
   },
   {
     "id": "hk_s3",
@@ -27,7 +64,28 @@
     "sin": "wrath",
     "basePower": 6,
     "coinPower": 4,
-    "coinCount": 3
+    "coinCount": 3,
+    "onUse": [
+      {
+        "type": "apply",
+        "status": "poise",
+        "potency": 3,
+        "count": 2,
+        "target": "self"
+      }
+    ],
+    "coinEffects": [
+      [],
+      [],
+      [
+        {
+          "type": "apply",
+          "status": "bleed",
+          "potency": 3,
+          "count": 2
+        }
+      ]
+    ]
   },
   {
     "id": "hk_def",
@@ -45,9 +103,29 @@
     "type": "attack",
     "damageType": "blunt",
     "sin": "sloth",
-    "basePower": 5,
+    "basePower": 6,
     "coinPower": 2,
-    "coinCount": 2
+    "coinCount": 2,
+    "onUse": [
+      {
+        "type": "apply",
+        "status": "charge",
+        "potency": 0,
+        "count": 2,
+        "target": "self"
+      }
+    ],
+    "coinEffects": [
+      [
+        {
+          "type": "apply",
+          "status": "tremor",
+          "potency": 3,
+          "count": 2
+        }
+      ],
+      []
+    ]
   },
   {
     "id": "dd_s2",
@@ -57,7 +135,23 @@
     "sin": "gluttony",
     "basePower": 5,
     "coinPower": 4,
-    "coinCount": 2
+    "coinCount": 2,
+    "coinEffects": [
+      [
+        {
+          "type": "apply",
+          "status": "tremor",
+          "potency": 3,
+          "count": 1
+        }
+      ],
+      [
+        {
+          "type": "burst",
+          "status": "tremor"
+        }
+      ]
+    ]
   },
   {
     "id": "dd_s3",
@@ -67,7 +161,25 @@
     "sin": "gloom",
     "basePower": 4,
     "coinPower": 6,
-    "coinCount": 3
+    "coinCount": 3,
+    "onUse": [
+      {
+        "type": "spend",
+        "status": "charge",
+        "count": 3,
+        "power": 6
+      }
+    ],
+    "coinEffects": [
+      [],
+      [],
+      [
+        {
+          "type": "burst",
+          "status": "tremor"
+        }
+      ]
+    ]
   },
   {
     "id": "dd_def",
@@ -85,7 +197,7 @@
     "type": "attack",
     "damageType": "blunt",
     "sin": "wrath",
-    "basePower": 3,
+    "basePower": 4,
     "coinPower": 3,
     "coinCount": 2
   },
@@ -97,7 +209,18 @@
     "sin": "envy",
     "basePower": 5,
     "coinPower": 3,
-    "coinCount": 2
+    "coinCount": 2,
+    "coinEffects": [
+      [],
+      [
+        {
+          "type": "apply",
+          "status": "bleed",
+          "potency": 2,
+          "count": 1
+        }
+      ]
+    ]
   },
   {
     "id": "thug_s3",
@@ -115,7 +238,7 @@
     "type": "attack",
     "damageType": "blunt",
     "sin": "sloth",
-    "basePower": 3,
+    "basePower": 4,
     "coinPower": 2,
     "coinCount": 3
   },
@@ -145,7 +268,7 @@
     "type": "attack",
     "damageType": "pierce",
     "sin": "gluttony",
-    "basePower": 3,
+    "basePower": 4,
     "coinPower": 4,
     "coinCount": 2
   },
@@ -167,7 +290,18 @@
     "sin": "lust",
     "basePower": 4,
     "coinPower": 6,
-    "coinCount": 2
+    "coinCount": 2,
+    "coinEffects": [
+      [
+        {
+          "type": "apply",
+          "status": "rupture",
+          "potency": 2,
+          "count": 2
+        }
+      ],
+      []
+    ]
   },
   {
     "id": "keeper_s1",
@@ -177,7 +311,19 @@
     "sin": "pride",
     "basePower": 4,
     "coinPower": 2,
-    "coinCount": 3
+    "coinCount": 3,
+    "coinEffects": [
+      [
+        {
+          "type": "apply",
+          "status": "sinking",
+          "potency": 2,
+          "count": 1
+        }
+      ],
+      [],
+      []
+    ]
   },
   {
     "id": "keeper_s2",
@@ -197,6 +343,48 @@
     "sin": "gloom",
     "basePower": 4,
     "coinPower": 5,
-    "coinCount": 3
+    "coinCount": 3,
+    "coinEffects": [
+      [],
+      [],
+      [
+        {
+          "type": "apply",
+          "status": "burn",
+          "potency": 3,
+          "count": 2
+        }
+      ]
+    ]
+  },
+  {
+    "id": "rust_def",
+    "name": "장갑 전개",
+    "type": "guard",
+    "damageType": "blunt",
+    "sin": "sloth",
+    "basePower": 6,
+    "coinPower": 2,
+    "coinCount": 2
+  },
+  {
+    "id": "hound_def",
+    "name": "그림자 회피",
+    "type": "evade",
+    "damageType": "pierce",
+    "sin": "envy",
+    "basePower": 5,
+    "coinPower": 3,
+    "coinCount": 1
+  },
+  {
+    "id": "keeper_def",
+    "name": "역행하는 초침",
+    "type": "counter",
+    "damageType": "slash",
+    "sin": "pride",
+    "basePower": 5,
+    "coinPower": 3,
+    "coinCount": 2
   }
 ]

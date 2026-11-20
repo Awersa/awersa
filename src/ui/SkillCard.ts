@@ -13,6 +13,8 @@ export interface CardInfo {
   canKill: boolean;
   /** Whether killing is good (default rule) or a loss (optional duel rule). */
   killIsLoss: boolean;
+  /** Short status summary, e.g. "출혈·호흡". */
+  effects: string;
 }
 
 const W = 490;
@@ -50,7 +52,8 @@ export class SkillCard extends Phaser.GameObjects.Container {
   show(info: CardInfo): void {
     const s = info.skill;
     this.title.setText(`${s.slot} ${s.name}`);
-    this.sub.setText(`${DAMAGE_TYPE_KO[s.damageType]} · ${SIN_KO[s.sin]}`);
+    this.sub.setText(`${DAMAGE_TYPE_KO[s.damageType]} · ${info.effects || SIN_KO[s.sin]}`);
+    this.sub.setColor(info.effects ? '#ffd6a0' : COLORS.textDim);
     this.range.setText(`${info.min} ~ ${info.max}`);
     this.detail.setText(`기본 ${s.basePower} · 코인 ${s.coinPower >= 0 ? '+' : ''}${s.coinPower} × ${s.coinCount}`);
     if (!info.canKill) this.warn.setText(`최대 피해 ${info.maxDamage}`).setColor(COLORS.textDim);

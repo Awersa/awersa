@@ -1,13 +1,14 @@
 import Phaser from 'phaser';
 import { COLORS, FONT, GAME_WIDTH } from '../config/display.ts';
-import type { BattleEvent, Side, SkillSlot } from '../core/index.ts';
+import { slotLabel, stackLabel, type BattleEvent, type Side, type SkillSlot } from '../core/index.ts';
 import type { AnimSpeed } from '../game/settings.ts';
 import { TEX } from './placeholders.ts';
 
 /** What the animator needs from the battle screen. It never reads or changes rules. */
 export interface AnimatorHooks {
   names: Record<Side, string>;
-  coinCount(side: Side, slot: SkillSlot): number;
+  coinCount(side: Side, slot: SkillSlot | 'defense'): number;
+  statusLabel(id: string): string;
   setHp(side: Side, hp: number, duration: number): void;
   setSanity(side: Side, value: number): void;
   setClashWins(side: Side, wins: number, needed: number | null): void;
@@ -39,7 +40,7 @@ export class ClashAnimator {
   private skipping = false;
   private layer: Phaser.GameObjects.Container | null = null;
   private rows: Partial<Record<Side, Row>> = {};
-  private slots: Partial<Record<Side, SkillSlot>> = {};
+  private slots: Partial<Record<Side, SkillSlot | 'defense'>> = {};
   private readonly pending = new Set<() => void>();
   private readonly tweens = new Set<Phaser.Tweens.Tween>();
   private vs: Phaser.GameObjects.Text | null = null;
@@ -127,7 +128,7 @@ export class ClashAnimator {
     switch (ev.t) {
       case 'skillUse': {
         this.slots[ev.side] = ev.slot;
-        this.ensureRow(ev.side, `${ev.slot} ${ev.skill}${ev.auto ? ' (패닉)' : ''}`);
+        this.ensureRow(ev.side, `${slotLabel(ev.slot)} ${ev.skill}${ev.auto ? ' (패닉)' : ''}`);
         return this.wait(180);
       }
       case 'cannotAct':
@@ -156,6 +157,49 @@ export class ClashAnimator {
       case 'panic':
         this.banner(`${this.hooks.names[ev.side]} 패닉!`, '#c07fd8', 64);
         return this.wait(600);
+      case 'guard': {
+        const row = this.ensureRow(ev.side, '');
+        this.vs?.setText('수비');
+        await this.flip(this.alive(row), ev.heads);
+        await this.pop(row.power, `막 ${ev.shield}`, '#9fd0ff');
+        this.banner(`${this.hooks.names[ev.side]} 수비! 보호막 ${ev.shield}`, '#9fd0ff', 50);
+        return this.wait(450);
+      }
+      case 'evade': {
+        const row = this.ensureRow(ev.side, '');
+        this.vs?.setText('회피');
+        await this.flip(this.alive(row).slice(0, ev.heads.length), ev.heads);
+        void this.pop(row.power, String(ev.power), ev.success ? '#9fd0ff' : '#9a8f80');
+        const a = this.hooks.damageAnchor(ev.side);
+        this.float(ev.success ? '회피!' : '회피 실패', a.x, a.y - 40, ev.success ? '#9fd0ff' : '#ff9a8a', 52);
+        return this.wait(ev.success ? 420 : 260);
+      }
+      case 'counter':
+        this.banner(`${this.hooks.names[ev.side]} 반격!`, '#ffb36b', 60);
+        return this.wait(450);
+      case 'defenseUnused':
+        this.banner(`${ev.skill} — 공격이 없어 무의미`, COLORS.textDim, 40);
+        return this.wait(450);
+      case 'statusApply': {
+        const a = this.hooks.damageAnchor(ev.side);
+        this.float(stackLabel(this.hooks.statusLabel(ev.status), ev.potency, ev.count), a.x, a.y + 70, '#ffd6a0', 36);
+        return this.wait(120);
+      }
+      case 'statusTrigger': {
+        const a = this.hooks.damageAnchor(ev.side);
+        const name = this.hooks.statusLabel(ev.status);
+        if (ev.action === 'damage') {
+          this.hooks.setHp(ev.side, ev.hp, this.ms(200));
+          this.float(`${name} -${ev.amount}`, a.x + 60, a.y + 20, '#ff9a6b', 48);
+        } else if (ev.action === 'sanityLoss') this.float(`${name}: 정신력 -${ev.amount}`, a.x, a.y + 20, '#c07fd8', 40);
+        else if (ev.action === 'staggerDamage') this.banner(`${name} 폭발!`, '#f1c40f', 56);
+        return this.wait(ev.action === 'staggerDamage' ? 450 : 260);
+      }
+      case 'spend': {
+        const a = this.hooks.damageAnchor(ev.side);
+        this.float(`${this.hooks.statusLabel(ev.status)} ${ev.count} 소모 → 위력 +${ev.power}`, a.x, a.y, '#7fd18b', 38);
+        return this.wait(300);
+      }
       case 'battleEnd':
         return this.wait(300);
       default:
@@ -251,6 +295,8 @@ export class ClashAnimator {
     this.hooks.flash(target);
     const a = this.hooks.damageAnchor(target);
     this.float(ev.damage > 0 ? `-${ev.damage}` : '0', a.x, a.y, ev.damage > 0 ? '#ff6b5b' : COLORS.textDim, 64 + Math.min(40, ev.damage));
+    if (ev.crit) this.float('치명!', a.x, a.y - 80, '#ffe08a', 50);
+    if (ev.blocked) this.float(`막음 ${ev.blocked}`, a.x + 160, a.y - 30, '#9fd0ff', 40);
     this.shake(Math.min(0.02, 0.004 + ev.damage / 1500), 160);
     await this.wait(330);
   }

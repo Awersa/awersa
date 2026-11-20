@@ -184,7 +184,7 @@ describe('sanity & panic', () => {
     p.sanity = -40;
     const t1 = takeTurn(state, 0, b);
     expect(t1.some((x) => x.t === 'panic')).toBe(true);
-    expect(playerStatus(state)).toEqual({ canChoose: false, reason: 'panic' });
+    expect(playerStatus(state)).toMatchObject({ canChoose: false, canDefend: false, reason: 'panic' });
     const t2 = takeTurn(state, null, b);
     expect(t2.some((x) => x.t === 'skillUse' && x.side === 'player' && x.auto === 'panic')).toBe(true);
     expect(t2.some((x) => x.t === 'panicRecover')).toBe(true);

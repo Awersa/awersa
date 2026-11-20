@@ -2,7 +2,7 @@
   {
     "id": "thug",
     "name": "뒷골목 패거리",
-    "maxHp": 160,
+    "maxHp": 180,
     "staggerThresholds": [
       0.5
     ],
@@ -29,7 +29,7 @@
   {
     "id": "rust",
     "name": "녹슨 경비 인형",
-    "maxHp": 190,
+    "maxHp": 210,
     "staggerThresholds": [
       0.6,
       0.3
@@ -50,14 +50,18 @@
     "skills": {
       "S1": "rust_s1",
       "S2": "rust_s2",
-      "S3": "rust_s3"
+      "S3": "rust_s3",
+      "defense": "rust_def"
     },
-    "asset": "enemy.rust"
+    "asset": "enemy.rust",
+    "aiWeights": {
+      "defense": 1
+    }
   },
   {
     "id": "hound",
     "name": "그림자 들개",
-    "maxHp": 150,
+    "maxHp": 165,
     "staggerThresholds": [
       0.5
     ],
@@ -77,14 +81,18 @@
     "skills": {
       "S1": "hound_s1",
       "S2": "hound_s2",
-      "S3": "hound_s3"
+      "S3": "hound_s3",
+      "defense": "hound_def"
     },
-    "asset": "enemy.hound"
+    "asset": "enemy.hound",
+    "aiWeights": {
+      "defense": 1
+    }
   },
   {
     "id": "keeper",
     "name": "시계탑 관리인",
-    "maxHp": 300,
+    "maxHp": 360,
     "staggerThresholds": [
       0.75,
       0.5,
@@ -106,12 +114,14 @@
     "skills": {
       "S1": "keeper_s1",
       "S2": "keeper_s2",
-      "S3": "keeper_s3"
+      "S3": "keeper_s3",
+      "defense": "keeper_def"
     },
     "aiWeights": {
       "S1": 1,
       "S2": 2,
-      "S3": 3
+      "S3": 3,
+      "defense": 1.5
     },
     "boss": true,
     "asset": "enemy.keeper"

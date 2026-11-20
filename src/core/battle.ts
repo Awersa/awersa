@@ -1,12 +1,15 @@
-import { chooseEnemyHandIndex } from './ai.ts';
+import { chooseEnemyAction } from './ai.ts';
+import { oneSidedAttack } from './attack.ts';
+import { useSkill } from './effects.ts';
+import { statusTurnEnd } from './status.ts';
 import type { Balance } from './balance.ts';
 import { resolveClash } from './clash.ts';
-import { isStaggered, oneSidedAttack } from './damage.ts';
+import { isStaggered } from './damage.ts';
 import { createRng, type Rng } from './rng.ts';
 import { changeSanity, clashSanityDelta } from './sanity.ts';
-import { effectiveSkill, powerRange } from './skill.ts';
+import { clashPower, effectiveSkill, flipCoins, headsChance, powerRange } from './skill.ts';
 import { cycleCard, prepareForBattle } from './unit.ts';
-import type { BattleEvent, BattleState, Side, UnitState } from './types.ts';
+import type { BattleEvent, BattleState, EffectiveSkill, Side, SkillSlot, UnitState } from './types.ts';
 
 /**
  * Battle flow (1 speed die each):
@@ -51,86 +54,95 @@ function startTurn(state: BattleState, rng: Rng, bal: Balance, events: BattleEve
   events.push({ t: 'turnStart', turn: state.turn, speed: { player: state.player.speed, enemy: state.enemy.speed } });
 
   state.enemyIntent = null;
-  if (canAct(state.enemy) && state.enemy.hand.length > 0) {
-    const idx = chooseEnemyHandIndex(state.enemy, rng);
-    const slot = state.enemy.hand[idx]!;
-    state.enemyIntent = slot;
-    const sk = effectiveSkill(state.enemy, slot);
-    events.push({ t: 'intent', slot, skill: sk.name, ...powerRange(sk) });
+  if (canAct(state.enemy) && (state.enemy.hand.length > 0 || state.enemy.defenseSkill)) {
+    const choice = chooseEnemyAction(state.enemy, rng);
+    const intent = choice === 'defense' ? 'defense' : state.enemy.hand[choice]!;
+    state.enemyIntent = intent;
+    const sk = actionSkill(state.enemy, intent);
+    events.push({ t: 'intent', slot: intent, skill: sk.name, ...powerRange(sk) });
   }
+}
+
+/** The skill behind an action (attack slot or the defense skill), with permanent mods. */
+export function actionSkill(u: UnitState, action: SkillSlot | 'defense'): EffectiveSkill {
+  if (action === 'defense') {
+    if (!u.defenseSkill) throw new Error(`${u.name} has no defense skill`);
+    return { ...u.defenseSkill, slot: 'defense' };
+  }
+  return effectiveSkill(u, action);
 }
 
 /** What the player may do this turn. */
 export function playerStatus(state: BattleState): {
   canChoose: boolean;
+  canDefend: boolean;
   reason: 'stagger' | 'panic' | null;
 } {
   const p = state.player;
-  if (state.outcome) return { canChoose: false, reason: null };
-  if (isStaggered(p)) return { canChoose: false, reason: 'stagger' };
-  if (p.panic === 'active') return { canChoose: false, reason: 'panic' };
-  return { canChoose: true, reason: null };
+  if (state.outcome) return { canChoose: false, canDefend: false, reason: null };
+  if (isStaggered(p)) return { canChoose: false, canDefend: false, reason: 'stagger' };
+  if (p.panic === 'active') return { canChoose: false, canDefend: false, reason: 'panic' };
+  return { canChoose: true, canDefend: p.defenseSkill !== null, reason: null };
+}
+
+export type PlayerChoice = number | 'defense' | null;
+
+interface Action {
+  unit: UnitState;
+  skill: EffectiveSkill;
 }
 
 /**
- * Resolves the current turn. `handIndex` is the player's chosen card; it is ignored (may be null)
- * when the player cannot choose (stagger / panic). Throws on an invalid index.
+ * Resolves the current turn. `choice` is a hand index or 'defense'; it is ignored (may be null)
+ * when the player cannot choose (stagger / panic). Throws on an invalid choice.
  */
-export function takeTurn(state: BattleState, handIndex: number | null, bal: Balance): BattleEvent[] {
+export function takeTurn(state: BattleState, choice: PlayerChoice, bal: Balance): BattleEvent[] {
   if (state.outcome) throw new Error('takeTurn: battle is over');
   const events: BattleEvent[] = [];
   const { player, enemy } = state;
   const status = playerStatus(state);
   if (status.canChoose) {
-    if (handIndex === null || !Number.isInteger(handIndex) || handIndex < 0 || handIndex >= player.hand.length) {
-      throw new RangeError('takeTurn: invalid hand index');
-    }
+    const validCard = typeof choice === 'number' && Number.isInteger(choice) && choice >= 0 && choice < player.hand.length;
+    const validDefense = choice === 'defense' && status.canDefend;
+    if (!validCard && !validDefense) throw new RangeError('takeTurn: invalid choice');
   }
 
   withRng(state, (rng) => {
     // --- decide actions ---
-    let pIndex: number | null = null;
-    if (status.canChoose) pIndex = handIndex;
+    let pChoice: number | 'defense' | null = null;
+    if (status.canChoose) pChoice = choice;
     else if (status.reason === 'panic') {
-      if (bal.sanity.panicBehavior === 'random' && player.hand.length > 0) pIndex = rng.int(0, player.hand.length - 1);
+      if (bal.sanity.panicBehavior === 'random' && player.hand.length > 0) pChoice = rng.int(0, player.hand.length - 1);
       else events.push({ t: 'cannotAct', side: 'player', reason: 'panic' });
     } else if (status.reason === 'stagger') events.push({ t: 'cannotAct', side: 'player', reason: 'stagger' });
 
-    let eIndex: number | null = null;
-    if (state.enemyIntent && canAct(enemy)) eIndex = enemy.hand.indexOf(state.enemyIntent);
-    else if (isStaggered(enemy)) events.push({ t: 'cannotAct', side: 'enemy', reason: 'stagger' });
+    let eChoice: number | 'defense' | null = null;
+    if (state.enemyIntent && canAct(enemy)) {
+      eChoice = state.enemyIntent === 'defense' ? 'defense' : enemy.hand.indexOf(state.enemyIntent);
+      if (eChoice === -1) eChoice = null;
+    } else if (isStaggered(enemy)) events.push({ t: 'cannotAct', side: 'enemy', reason: 'stagger' });
 
-    const pSlot = pIndex !== null ? player.hand[pIndex]! : null;
-    const eSlot = eIndex !== null && eIndex >= 0 ? enemy.hand[eIndex]! : null;
-    if (pSlot) {
-      events.push({ t: 'skillUse', side: 'player', slot: pSlot, skill: player.skills[pSlot].name, ...(status.reason === 'panic' ? { auto: 'panic' as const } : {}) });
-      cycleCard(player, pIndex!, rng);
-    }
-    if (eSlot) {
-      events.push({ t: 'skillUse', side: 'enemy', slot: eSlot, skill: enemy.skills[eSlot].name });
-      cycleCard(enemy, eIndex!, rng);
+    const take = (u: UnitState, c: number | 'defense' | null, panic: boolean): Action | null => {
+      if (c === null) return null;
+      const slot = c === 'defense' ? 'defense' : u.hand[c]!;
+      const skill = actionSkill(u, slot);
+      events.push({ t: 'skillUse', side: u.side, slot, skill: skill.name, ...(panic ? { auto: 'panic' as const } : {}) });
+      if (c !== 'defense') cycleCard(u, c, rng);
+      return { unit: u, skill };
+    };
+    let p = take(player, pChoice, status.reason === 'panic');
+    let e = take(enemy, eChoice, false);
+    // onUse effects (spend charge, self buffs) — in speed order, player first on ties
+    const order = player.speed >= enemy.speed ? [p, e] : [e, p];
+    for (const a of order) {
+      if (!a) continue;
+      const other = a.unit === player ? enemy : player;
+      const used = useSkill(a.skill, a.unit, other, bal, events);
+      if (a === p) p = { ...p, skill: used };
+      else e = { ...e!, skill: used };
     }
 
-    // --- resolve ---
-    if (pSlot && eSlot) {
-      const pSkill = effectiveSkill(player, pSlot);
-      const eSkill = effectiveSkill(enemy, eSlot);
-      const res = resolveClash(player, pSkill, enemy, eSkill, rng, bal, events);
-      const winner = res.winner === 'player' ? player : enemy;
-      const loser = res.winner === 'player' ? enemy : player;
-      changeSanity(winner, clashSanityDelta(true, res.clashCount, bal), bal, events);
-      changeSanity(loser, clashSanityDelta(false, res.clashCount, bal), bal, events);
-      winner.clashWins++;
-      const needed = res.winner === 'player' ? bal.battle.playerClashWinsToWin : bal.battle.enemyClashWinsToWin;
-      events.push({ t: 'clashWin', side: res.winner, wins: winner.clashWins, needed });
-      oneSidedAttack(winner, res.winner === 'player' ? pSkill : eSkill, res.winnerCoins, loser, res.clashCount, rng, bal, events);
-    } else if (pSlot) {
-      const sk = effectiveSkill(player, pSlot);
-      oneSidedAttack(player, sk, sk.coinCount, enemy, 0, rng, bal, events);
-    } else if (eSlot) {
-      const sk = effectiveSkill(enemy, eSlot);
-      oneSidedAttack(enemy, sk, sk.coinCount, player, 0, rng, bal, events);
-    }
+    resolve(state, p, e, rng, bal, events);
 
     // --- outcome ---
     checkOutcome(state, bal, events);
@@ -138,6 +150,7 @@ export function takeTurn(state: BattleState, handIndex: number | null, bal: Bala
 
     // --- turn end ---
     for (const u of [player, enemy]) {
+      statusTurnEnd(u, bal, events);
       if (u.panic === 'active') {
         u.panic = 'none';
         u.sanity = bal.sanity.panicRecoverSanity;
@@ -145,11 +158,63 @@ export function takeTurn(state: BattleState, handIndex: number | null, bal: Bala
       }
       if (u.staggerTurnsLeft > 0 && --u.staggerTurnsLeft === 0) events.push({ t: 'staggerRecover', side: u.side });
     }
+    checkOutcome(state, bal, events); // turn-end damage (burn) can end the battle
+    if (state.outcome) return;
     startTurn(state, rng, bal, events);
   });
   return events;
 }
 
+const isAttack = (a: Action | null): a is Action => a !== null && a.skill.type === 'attack';
+const isDefense = (a: Action | null): a is Action => a !== null && a.skill.type !== 'attack';
+
+function clash(a: Action, b: Action, rng: Rng, bal: Balance, events: BattleEvent[]): void {
+  // resolveClash is written player-vs-enemy; keep that orientation.
+  const [p, e] = a.unit.side === 'player' ? [a, b] : [b, a];
+  const res = resolveClash(p.unit, p.skill, e.unit, e.skill, rng, bal, events);
+  const win = res.winner === 'player' ? p : e;
+  const lose = res.winner === 'player' ? e : p;
+  changeSanity(win.unit, clashSanityDelta(true, res.clashCount, bal), bal, events);
+  changeSanity(lose.unit, clashSanityDelta(false, res.clashCount, bal), bal, events);
+  win.unit.clashWins++;
+  const needed = res.winner === 'player' ? bal.battle.playerClashWinsToWin : bal.battle.enemyClashWinsToWin;
+  events.push({ t: 'clashWin', side: res.winner, wins: win.unit.clashWins, needed });
+  oneSidedAttack(win.unit, win.skill, res.winnerCoins, lose.unit, res.clashCount, rng, bal, events);
+}
+
+function resolve(state: BattleState, p: Action | null, e: Action | null, rng: Rng, bal: Balance, events: BattleEvent[]): void {
+  if (isAttack(p) && isAttack(e)) return clash(p, e, rng, bal, events);
+
+  const atk = isAttack(p) ? p : isAttack(e) ? e : null;
+  const def = atk === p ? e : p;
+  if (!atk) {
+    // nobody attacked: defenses are wasted
+    for (const d of [p, e]) if (isDefense(d)) events.push({ t: 'defenseUnused', side: d.unit.side, skill: d.skill.name });
+    return;
+  }
+  const tgt = atk.unit === state.player ? state.enemy : state.player;
+
+  if (isDefense(def)) {
+    switch (def.skill.type) {
+      case 'counter':
+        events.push({ t: 'counter', side: def.unit.side, skill: def.skill.name });
+        return clash(atk, def, rng, bal, events);
+      case 'guard': {
+        const heads = flipCoins(def.skill.coinCount, headsChance(def.unit, bal), rng);
+        const shield = Math.floor(clashPower(def.skill, heads) * bal.defense.guardShieldMultiplier);
+        events.push({ t: 'guard', side: def.unit.side, skill: def.skill.name, heads, shield });
+        return oneSidedAttack(atk.unit, atk.skill, atk.skill.coinCount, def.unit, 0, rng, bal, events, { kind: 'guard', shield });
+      }
+      case 'evade':
+        return oneSidedAttack(atk.unit, atk.skill, atk.skill.coinCount, def.unit, 0, rng, bal, events, {
+          kind: 'evade',
+          skill: def.skill,
+          active: true,
+        });
+    }
+  }
+  oneSidedAttack(atk.unit, atk.skill, atk.skill.coinCount, tgt, 0, rng, bal, events);
+}
 function checkOutcome(state: BattleState, bal: Balance, events: BattleEvent[]): void {
   const end = (outcome: 'win' | 'lose', reason: 'enemyHp' | 'playerHp' | 'clashWins') => {
     state.outcome = outcome;

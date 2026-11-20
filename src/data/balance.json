@@ -51,17 +51,18 @@
     "defaultWeights": {
       "S1": 1,
       "S2": 1.5,
-      "S3": 3
+      "S3": 3,
+      "defense": 0
     }
   },
   "floor": {
-    "hpPerFloor": 0.1,
+    "hpPerFloor": 0.14,
     "basePowerEveryFloors": 2,
     "coinPowerEveryFloors": 3,
-    "levelPerFloor": 1,
+    "levelPerFloor": 2,
     "bossEvery": 5,
     "bossHpMultiplier": 1.0,
-    "basePowerAccelDivisor": 60
+    "basePowerAccelDivisor": 40
   },
   "rewards": {
     "offerCount": 3,
@@ -70,5 +71,15 @@
   },
   "features": {
     "sinAndEgo": false
+  },
+  "defense": {
+    "guardShieldMultiplier": 1.5,
+    "evadeSanity": 5
+  },
+  "status": {
+    "critMultiplier": 1.2,
+    "critChancePerPotency": 0.05,
+    "maxPotency": 99,
+    "maxCount": 99
   }
 }
