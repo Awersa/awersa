@@ -1,0 +1,46 @@
+{
+  "$comment": "모든 밸런스 수치. 전투 엔진(src/core)은 이 값만 참조합니다. 자유롭게 수정하세요.",
+  "coin": {
+    "baseHeadsChance": 0.5,
+    "sanityToChance": 0.01
+  },
+  "sanity": {
+    "min": -45,
+    "max": 45,
+    "start": 0,
+    "clashWin": 10,
+    "clashLose": -5,
+    "clashWinPerClashCount": 1,
+    "clashLosePerClashCount": 0,
+    "panicThreshold": -45,
+    "panicBehavior": "random"
+  },
+  "clash": {
+    "bonusPerClash": 0.03,
+    "maxTieRerolls": 50
+  },
+  "resistance": {
+    "fatal": 2.0,
+    "weak": 1.5,
+    "normal": 1.0,
+    "endured": 0.75,
+    "ineffective": 0.5,
+    "immune": 0.0
+  },
+  "level": {
+    "divisorConstant": 25
+  },
+  "stagger": {
+    "resistanceOverride": "fatal",
+    "recoverAfterTurns": 1
+  },
+  "deck": {
+    "S1": 3,
+    "S2": 2,
+    "S3": 1,
+    "handSize": 2
+  },
+  "features": {
+    "sinAndEgo": false
+  }
+}
