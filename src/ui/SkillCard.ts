@@ -9,7 +9,10 @@ export interface CardInfo {
   max: number;
   /** Upper bound of damage dealt to the enemy if it lands everything. */
   maxDamage: number;
-  lethal: boolean;
+  /** Best case reaches the enemy's HP. */
+  canKill: boolean;
+  /** Whether killing is good (default rule) or a loss (optional duel rule). */
+  killIsLoss: boolean;
 }
 
 const W = 490;
@@ -50,8 +53,9 @@ export class SkillCard extends Phaser.GameObjects.Container {
     this.sub.setText(`${DAMAGE_TYPE_KO[s.damageType]} · ${SIN_KO[s.sin]}`);
     this.range.setText(`${info.min} ~ ${info.max}`);
     this.detail.setText(`기본 ${s.basePower} · 코인 ${s.coinPower >= 0 ? '+' : ''}${s.coinPower} × ${s.coinCount}`);
-    this.warn.setText(info.lethal ? `⚠ 치사 위험 (최대 ${info.maxDamage})` : `최대 피해 ${info.maxDamage}`);
-    this.warn.setColor(info.lethal ? COLORS.danger : COLORS.textDim);
+    if (!info.canKill) this.warn.setText(`최대 피해 ${info.maxDamage}`).setColor(COLORS.textDim);
+    else if (info.killIsLoss) this.warn.setText(`⚠ 치사 위험 (최대 ${info.maxDamage})`).setColor(COLORS.danger);
+    else this.warn.setText(`★ 처치 가능 (최대 ${info.maxDamage})`).setColor(COLORS.ok);
     this.coins.removeAll(true);
     const gap = 46;
     for (let i = 0; i < s.coinCount; i++) {

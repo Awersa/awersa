@@ -37,8 +37,9 @@ describe('battle flow', () => {
     expect(e.clashWins).toBe(3);
   });
 
-  it('duel rule: bringing the ENEMY to 0 HP is a loss', () => {
+  it('optional duel rule: bringing the ENEMY to 0 HP can be configured as a loss', () => {
     const b = bal();
+    b.battle.enemyHpZero = 'lose';
     const p = makeUnit('player', { basePower: 50, coinPower: 0, coinCount: 1 });
     const e = makeUnit('enemy', { basePower: 1, coinPower: 0, coinCount: 1 }, { maxHp: 30 });
     const { state } = createBattle(p, e, 1, b);
@@ -48,9 +49,8 @@ describe('battle flow', () => {
     expect(e.hp).toBe(0);
   });
 
-  it('enemyHpZero can be switched back to a win', () => {
+  it('default: whoever reaches 0 HP loses (enemy at 0 = player wins)', () => {
     const b = bal();
-    b.battle.enemyHpZero = 'win';
     const p = makeUnit('player', { basePower: 50, coinPower: 0, coinCount: 1 });
     const e = makeUnit('enemy', { basePower: 1, coinPower: 0, coinCount: 1 }, { maxHp: 30 });
     const { state } = createBattle(p, e, 1, b);

@@ -96,10 +96,24 @@ The spec is in `SPEC.md`. This file records **assumptions I made** where the spe
 
 ### Assumptions / decisions
 - **Card choice takes two taps**: tap a card to select it, then press the "합 개시" button. This prevents accidental taps. Tapping the same card again deselects it.
-- **Lethal warning**: the card shows "⚠ 치사 위험" when its best case (every coin heads, with a clash bonus as large as its coin count) reaches the enemy's current HP. The duel rule makes this important. It is an upper bound, so in practice it often won't actually kill.
+- **Lethal warning** (only when the optional duel rule is on; by default the card shows "★ 처치 가능" instead): the card shows "⚠ 치사 위험" when its best case (every coin heads, with a clash bonus as large as its coin count) reaches the enemy's current HP. The duel rule makes this important. It is an upper bound, so in practice it often won't actually kill.
 - **Enemy intent box**: shows skill, power range, coin count, damage type and its max damage to you. It turns red when it can kill you.
 - **Result panel**: shows the latest turn, up to 9 lines. The full log is in "로그" (scroll by dragging).
 - **"포기"** asks for confirmation ("정말?") on the first tap and acts on the second, within 2 seconds.
 - **Victory rewards (3 choose 1)** are already shown at the end of a battle, so the endless loop is playable on a phone now. The polished screen, saving/resume and the game-over record are milestone 6. For now, leaving the app loses the run.
 - **The title screen now has character select**, which the spec places in milestone 6. It was needed to play.
 - **Security**: all text (data, logs) is drawn on the Phaser canvas. No HTML/DOM injection path exists.
+
+## Rule fix (user clarification): whoever hits 0 HP loses
+- I misread the earlier request. The intended rule is **"the side whose HP reaches 0 loses"**, so killing the enemy is a **win**. The default is now `battle.enemyHpZero: "win"`. The duel variant (`"lose"`) is still there as an option.
+- Final rules:
+  - **Win**: you reach 3 clash wins, or the enemy's HP reaches 0.
+  - **Loss**: the enemy reaches 3 clash wins, or your HP reaches 0.
+- Enemy HP: thug 120 / rust 145 / hound 110 / boss 260. Because clash wins usually end the battle first, enemy HP barely moves the win rate (simulated 100–160 → nearly identical). This setting lets a strong hit sometimes finish a fight early.
+- The card label now shows "★ 처치 가능" (can kill) in green instead of a lethal warning. The red warning only appears under the duel rule.
+- Re-measured (N=1500):
+
+| | 1층 패배 | 도달 층 중앙값 | 첫 보스 돌파 | 패배 원인 (내 HP / 합 패배) |
+|---|---|---|---|---|
+| 한결 | 13% | 5 | 23% | 83% / 17% |
+| 도담 | 19% | 4 | 18% | 65% / 35% |

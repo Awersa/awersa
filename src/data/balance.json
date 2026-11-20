@@ -44,7 +44,7 @@
   "battle": {
     "playerClashWinsToWin": 3,
     "enemyClashWinsToWin": 3,
-    "enemyHpZero": "lose",
+    "enemyHpZero": "win",
     "minHitDamage": 1
   },
   "ai": {

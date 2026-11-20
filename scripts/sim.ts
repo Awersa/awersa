@@ -149,5 +149,5 @@ for (const pd of data.players) {
   const q = (p: number) => reached[Math.floor(p * (reached.length - 1))];
   const avg = reached.reduce((a, b) => a + b, 0) / reached.length;
   const bossClear = reached.filter((f) => f > bal.floor.bossEvery).length / N;
-  console.log(`  ${pd.name}: 1층 패배 ${pct(firstLoss / N)} | 도달 층 평균 ${avg.toFixed(1)} · 중앙값 ${q(0.5)} · 상위10% ${q(0.9)} · 최고 ${reached.at(-1)} | 첫 보스 돌파 ${pct(bossClear)} | 패배 원인: 내 체력 ${pct(lossBy.hp / N)} · 상대 사망 ${pct(lossBy.kill / N)} · 합 패배 ${pct(lossBy.clashWins / N)}`);
+  console.log(`  ${pd.name}: 1층 패배 ${pct(firstLoss / N)} | 도달 층 평균 ${avg.toFixed(1)} · 중앙값 ${q(0.5)} · 상위10% ${q(0.9)} · 최고 ${reached.at(-1)} | 첫 보스 돌파 ${pct(bossClear)} | 패배 원인: 내 체력 ${pct(lossBy.hp / N)}${bal.battle.enemyHpZero === 'lose' ? ` · 상대 사망 ${pct(lossBy.kill / N)}` : ''} · 합 패배 ${pct(lossBy.clashWins / N)}`);
 }

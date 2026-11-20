@@ -80,7 +80,7 @@ export class BattleScene extends Phaser.Scene {
     this.log.push(`===== ${run.floor}층: ${enemy.name}${enemy.boss ? ' (보스)' : ''} =====`, ...this.lines(events));
     this.resultText.setText(
       `합 ${bal.battle.playerClashWinsToWin ?? '∞'}승을 하면 승리.\n` +
-        (bal.battle.enemyHpZero === 'lose' ? '단, 누구든 체력이 0이 되면 패배 — 상대를 죽이지 마라.' : '상대 체력을 0으로 만들어도 승리.'),
+        (bal.battle.enemyHpZero === 'lose' ? '단, 누구든 체력이 0이 되면 패배 — 상대를 죽이지 마라.' : '체력이 0이 된 쪽이 패배. 상대가 먼저 합 3승을 해도 패배.'),
     );
     this.refresh();
   }
@@ -182,7 +182,7 @@ export class BattleScene extends Phaser.Scene {
       const sk = effectiveSkill(p, slot);
       const r = powerRange(sk);
       const maxDamage = maxOneSidedDamage(p, sk, sk.coinCount, e, sk.coinCount, bal);
-      card.show({ skill: sk, ...r, maxDamage, lethal: bal.battle.enemyHpZero === 'lose' && maxDamage >= e.hp });
+      card.show({ skill: sk, ...r, maxDamage, canKill: maxDamage >= e.hp, killIsLoss: bal.battle.enemyHpZero === 'lose' });
       card.setEnabled(status.canChoose && !this.state.outcome);
       card.setSelected(this.selected === i);
     });
