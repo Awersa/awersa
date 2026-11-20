@@ -55,9 +55,9 @@
     }
   },
   "floor": {
-    "hpPerFloor": 0.08,
+    "hpPerFloor": 0.1,
     "basePowerEveryFloors": 2,
-    "coinPowerEveryFloors": 4,
+    "coinPowerEveryFloors": 3,
     "levelPerFloor": 1,
     "bossEvery": 5,
     "bossHpMultiplier": 1.0

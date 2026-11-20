@@ -154,3 +154,20 @@ The spec is in `SPEC.md`. This file records **assumptions I made** where the spe
 
 ### Security
 - New `src/platform/storage.ts`: every `localStorage` read is wrapped in try/catch, size-limited (256 KB), parsed and validated. Corrupted, tampered or blocked storage silently falls back to defaults. Saves in milestone 6 will use the same wrapper.
+
+## Reward rework (user playtest feedback)
+- **Playtest**: picking only "날 선 코인" (all skills, coin power +1) and "단단한 기초" (all skills, base power +1) reached floor 15. The sim confirmed that strategy was optimal, so there was no real choice.
+- **Fix** (user chose "make the choice matter"):
+  - All-skill upgrades are now **rare** (weight 1 each, was 2–3).
+  - Single-slot upgrades are **stronger and more common**: base power **+3** (was +2), coin power +2, weight 4.
+  - The decision is now "build up S1, which shows up often (3 of 6 cards), or make the big S3 hit harder (1 of 6)". Reward text shows the slot's deck count (e.g. "S1 가르기 (덱 3장)") so the trade-off is visible.
+  - Enemy growth adjusted to keep the difficulty: coin power +1 every 3 floors (was 4), HP +10% per floor (was 8%).
+- The simulator now has three reward strategies. "Smart" values each offer by expected power gain × how often that slot is drawn. Results (N=3000):
+
+| reaching floor 10 | 한결 | 도담 |
+|---|---|---|
+| smart (situational) | 13.5% | 11.1% |
+| all-skill upgrades first | 6.4% | 3.2% |
+| random | 0.3% | 0.3% |
+
+First-floor loss stays at about 6–8%.

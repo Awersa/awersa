@@ -124,19 +124,33 @@ for (const pd of data.players) {
 
 type RewardPolicy = (offers: RewardOffer[], p: UnitState) => RewardOffer;
 const randomReward = (rng: Rng): RewardPolicy => (offers) => rng.pick(offers);
-/** Heals when low; otherwise takes the biggest expected power gain. */
+/** Heals when low; otherwise takes the biggest expected power gain, weighted by how often each slot is drawn. */
 const smartReward: RewardPolicy = (offers, p) => {
+  const deckTotal = bal.deck.S1 + bal.deck.S2 + bal.deck.S3;
+  const ch = 0.6; // typical heads chance with positive sanity
   const score = (o: RewardOffer): number => {
     const hpRatio = p.hp / p.maxHp;
     switch (o.kind) {
-      case 'heal': return hpRatio < 0.5 ? 100 : hpRatio < 0.75 ? 6 : 0;
-      case 'maxHp': return 3 + (1 - hpRatio) * 4;
-      case 'basePower': return o.amount * o.slots.length * 1.6;
-      case 'coinPower': return o.amount * o.slots.length * 1.2;
+      case 'heal': return hpRatio < 0.45 ? 100 : 0;
+      case 'maxHp': return 0.4 + (1 - hpRatio);
+      case 'basePower':
+      case 'coinPower':
+        return o.slots.reduce((sum, slot) => {
+          const freq = bal.deck[slot] / deckTotal;
+          const per = o.kind === 'basePower' ? 1 : p.skills[slot].coinCount * ch;
+          return sum + freq * per * o.amount;
+        }, 0);
     }
   };
   return offers.reduce((a, b) => (score(b) > score(a) ? b : a));
 };
+
+/** "All skills" upgrades only (the user's 15-floor strategy), otherwise whatever is first. */
+const allOnlyReward: RewardPolicy = (offers) =>
+  offers.find((o) => o.slots.length === 3 && o.kind === 'coinPower') ??
+  offers.find((o) => o.slots.length === 3 && o.kind === 'basePower') ??
+  offers.find((o) => o.slots.length === 1) ??
+  offers[0]!;
 
 function endless(pd: (typeof data.players)[number], seed: number, pickReward: (rng: Rng) => RewardPolicy) {
   const rng = createRng(seed);
@@ -156,7 +170,7 @@ function endless(pd: (typeof data.players)[number], seed: number, pickReward: (r
 
 console.log(`\n[무한 모드 런] (N=${N}, 전투는 똑똑한 선택, HP 이어짐)`);
 for (const pd of data.players) {
-  for (const [label, rp] of [['보상 잘 고름', () => smartReward], ['보상 무작위', randomReward]] as const) {
+  for (const [label, rp] of [['보상 잘 고름', () => smartReward], ['전체 강화 우선', () => allOnlyReward], ['보상 무작위', randomReward]] as const) {
     const reached: number[] = [];
     let firstLoss = 0;
     for (let i = 0; i < N; i++) {

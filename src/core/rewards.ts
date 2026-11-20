@@ -33,7 +33,7 @@ export interface RewardOffer {
   description: string;
 }
 
-function describe(def: RewardDef, unit: UnitState, slots: SkillSlot[]): string {
+function describe(def: RewardDef, unit: UnitState, slots: SkillSlot[], bal: Balance): string {
   const range = (s: SkillSlot) => {
     const r = powerRange(effectiveSkill(unit, s));
     return `${r.min}~${r.max}`;
@@ -42,7 +42,10 @@ function describe(def: RewardDef, unit: UnitState, slots: SkillSlot[]): string {
     case 'basePower':
     case 'coinPower': {
       const what = def.kind === 'basePower' ? `기본 위력 +${def.amount}` : `코인 위력 +${def.amount}`;
-      const who = slots.length === SKILL_SLOTS.length ? '모든 공격 스킬' : slots.map((s) => `${s} ${unit.skills[s].name}`).join(', ');
+      const who =
+        slots.length === SKILL_SLOTS.length
+          ? '모든 공격 스킬'
+          : slots.map((s) => `${s} ${unit.skills[s].name} (덱 ${bal.deck[s]}장)`).join(', ');
       return `${who}: ${what} (현재 ${slots.map(range).join(' / ')})`;
     }
     case 'heal':
@@ -65,7 +68,7 @@ export function generateOffers(defs: readonly RewardDef[], unit: UnitState, rng:
           ? [rng.pick(SKILL_SLOTS)]
           : [...SKILL_SLOTS]
         : [];
-    out.push({ defId: def.id, name: def.name, kind: def.kind, amount: def.amount, slots, description: describe(def, unit, slots) });
+    out.push({ defId: def.id, name: def.name, kind: def.kind, amount: def.amount, slots, description: describe(def, unit, slots, bal) });
   }
   return out;
 }
