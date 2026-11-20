@@ -1,0 +1,12 @@
+[
+  { "id": "rusty_blade", "name": "녹슨 칼날", "description": "합 승리 시 상대에게 출혈 2/1", "trigger": "clashWin", "actions": [{ "type": "apply", "status": "bleed", "potency": 2, "count": 1, "target": "target" }] },
+  { "id": "cracked_bell", "name": "금 간 종", "description": "합 패배 시 상대에게 진동 3/1", "trigger": "clashLose", "actions": [{ "type": "apply", "status": "tremor", "potency": 3, "count": 1, "target": "target" }] },
+  { "id": "bandage", "name": "응급 붕대", "description": "전투 시작 시 체력 10 회복", "trigger": "battleStart", "actions": [{ "type": "heal", "amount": 10 }] },
+  { "id": "calm_breath", "name": "차분한 호흡", "description": "전투 시작 시 호흡 3/3", "trigger": "battleStart", "actions": [{ "type": "apply", "status": "poise", "potency": 3, "count": 3, "target": "self" }] },
+  { "id": "fighting_spirit", "name": "투지", "description": "매 턴 시작 시 정신력 +2", "trigger": "turnStart", "actions": [{ "type": "sanity", "amount": 2 }] },
+  { "id": "ember", "name": "불씨", "description": "공격 적중 시 25% 확률로 상대에게 화상 2/1", "trigger": "coinHit", "chance": 0.25, "actions": [{ "type": "apply", "status": "burn", "potency": 2, "count": 1, "target": "target" }] },
+  { "id": "spare_battery", "name": "예비 전지", "description": "전투 시작 시 충전 4", "trigger": "battleStart", "actions": [{ "type": "apply", "status": "charge", "potency": 0, "count": 4, "target": "self" }] },
+  { "id": "sharp_eye", "name": "날카로운 눈", "description": "합 승리 시 정신력 +4", "trigger": "clashWin", "actions": [{ "type": "sanity", "amount": 4 }] },
+  { "id": "iron_skin", "name": "철갑 피부", "description": "합 패배 시 체력 6 회복", "trigger": "clashLose", "actions": [{ "type": "heal", "amount": 6 }] },
+  { "id": "shrapnel", "name": "파열 탄두", "description": "합 승리 시 상대에게 파열 3/1", "trigger": "clashWin", "actions": [{ "type": "apply", "status": "rupture", "potency": 3, "count": 1, "target": "target" }] }
+]

@@ -1,6 +1,7 @@
 import { REWARD_KINDS, type RewardDef } from './rewards.ts';
 import {
   DAMAGE_TYPES,
+  GIFT_TRIGGERS,
   STATUS_ACTIONS,
   STATUS_TRIGGERS,
   RESISTANCE_GRADES,
@@ -8,6 +9,7 @@ import {
   SKILL_SLOTS,
   SKILL_TYPES,
   type SkillDef,
+  type GiftDef,
   type StatusDef,
   type UnitDef,
 } from './types.ts';
@@ -38,6 +40,33 @@ export function validateEffect(x: unknown, where: string, statuses: ReadonlySet<
   if (x.power !== undefined && !isInt(x.power, -99, 99)) e.push(`${where}: power must be -99..99`);
   if (x.target !== undefined && x.target !== 'self' && x.target !== 'target') e.push(`${where}: target must be self/target`);
   if (x.type === 'apply' && (!isInt(x.count, 1, 99))) e.push(`${where}: apply needs count >= 1`);
+  return e;
+}
+
+export function validateGift(x: unknown, where: string, statuses: ReadonlySet<string>): string[] {
+  if (!isObj(x)) return [`${where}: not an object`];
+  const e: string[] = [];
+  if (!isStr(x.id) || !ID.test(x.id)) e.push(`${where}: bad id`);
+  if (!isStr(x.name)) e.push(`${where}: bad name`);
+  if (!isStr(x.description, 300)) e.push(`${where}: bad description`);
+  if (!isOneOf(x.trigger, GIFT_TRIGGERS)) e.push(`${where}: trigger must be ${GIFT_TRIGGERS.join('/')}`);
+  if (x.chance !== undefined && !isNum(x.chance, 0, 1)) e.push(`${where}: chance must be 0..1`);
+  if (!Array.isArray(x.actions) || x.actions.length === 0) e.push(`${where}: actions must be a non-empty array`);
+  else
+    x.actions.forEach((a, i) => {
+      const w = `${where}.actions[${i}]`;
+      if (!isObj(a)) return e.push(`${w}: not an object`);
+      if (a.type === 'apply') {
+        if (typeof a.status !== 'string' || !statuses.has(a.status)) e.push(`${w}: unknown status ${String(a.status)}`);
+        if (!isInt(a.potency, 0, 99) || !isInt(a.count, 1, 99)) e.push(`${w}: potency 0..99, count 1..99`);
+        if (a.target !== 'self' && a.target !== 'target') e.push(`${w}: target must be self/target`);
+      } else if (a.type === 'heal') {
+        if (!isInt(a.amount, 1, 9999)) e.push(`${w}: heal amount 1..9999`);
+      } else if (a.type === 'sanity') {
+        if (!isInt(a.amount, -99, 99)) e.push(`${w}: sanity amount -99..99`);
+      } else e.push(`${w}: type must be apply/heal/sanity`);
+      return undefined;
+    });
   return e;
 }
 
@@ -128,6 +157,11 @@ export function validateUnit(u: unknown, where: string, skills: ReadonlyMap<stri
       e.push(`${where}: bad aiWeights`);
   }
   if (u.boss !== undefined && typeof u.boss !== 'boolean') e.push(`${where}: boss must be boolean`);
+  if (u.aiPattern !== undefined) {
+    if (!Array.isArray(u.aiPattern) || u.aiPattern.length === 0 || u.aiPattern.length > 50 || u.aiPattern.some((m) => !(isOneOf(m, SKILL_SLOTS) || m === 'defense')))
+      e.push(`${where}: aiPattern must list S1/S2/S3/defense`);
+    else if (u.aiPattern.includes('defense') && !(isObj(u.skills) && u.skills.defense)) e.push(`${where}: aiPattern uses defense but the unit has none`);
+  }
   return e;
 }
 
@@ -151,13 +185,14 @@ export function validateReward(r: unknown, where: string): string[] {
 
 export interface GameData {
   statuses: StatusDef[];
+  gifts: GiftDef[];
   skills: SkillDef[];
   players: UnitDef[];
   enemies: UnitDef[];
   rewards: RewardDef[];
 }
 
-export function validateGameData(d: { statuses: unknown; skills: unknown; players: unknown; enemies: unknown; rewards: unknown }): string[] {
+export function validateGameData(d: { statuses: unknown; gifts: unknown; skills: unknown; players: unknown; enemies: unknown; rewards: unknown }): string[] {
   const errors: string[] = [];
   const skills = new Map<string, SkillDef>();
   const arr = (v: unknown, name: string): unknown[] => {
@@ -179,6 +214,10 @@ export function validateGameData(d: { statuses: unknown; skills: unknown; player
   st.forEach((x, i) => errors.push(...validateStatus(x, `statuses[${i}]`)));
   dup(st.map((x) => (isObj(x) ? x.id : undefined)), 'statuses');
   const statusIds = new Set(st.filter((x) => isObj(x) && typeof x.id === 'string').map((x) => (x as Obj).id as string));
+
+  const gifts = arr(d.gifts, 'gifts');
+  gifts.forEach((x, i) => errors.push(...validateGift(x, `gifts[${i}]`, statusIds)));
+  dup(gifts.map((x) => (isObj(x) ? x.id : undefined)), 'gifts');
 
   const sk = arr(d.skills, 'skills');
   sk.forEach((s, i) => {

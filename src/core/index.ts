@@ -6,6 +6,7 @@ export * from './damage.ts';
 export * from './attack.ts';
 export * from './effects.ts';
 export * from './status.ts';
+export * from './gifts.ts';
 export * from './sanity.ts';
 export * from './clash.ts';
 export * from './unit.ts';

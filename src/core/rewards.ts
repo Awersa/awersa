@@ -3,7 +3,7 @@ import type { Rng } from './rng.ts';
 import { effectiveSkill, powerRange } from './skill.ts';
 import { SKILL_SLOTS, type SkillSlot, type UnitState } from './types.ts';
 
-export const REWARD_KINDS = ['basePower', 'coinPower', 'coinCount', 'heal', 'maxHp'] as const;
+export const REWARD_KINDS = ['basePower', 'coinPower', 'coinCount', 'heal', 'maxHp', 'gift'] as const;
 export type RewardKind = (typeof REWARD_KINDS)[number];
 const SKILL_KINDS: readonly RewardKind[] = ['basePower', 'coinPower', 'coinCount'];
 
@@ -14,6 +14,7 @@ const SKILL_KINDS: readonly RewardKind[] = ['basePower', 'coinPower', 'coinCount
  *  coinCount: +amount coins on a skill (capped by balance.rewards.maxCoinCount).
  *  heal:      heal amount × maxHp (ratio).
  *  maxHp:     +amount max HP (and heals the same amount).
+ *  gift:      a random passive gift the player doesn't own yet (src/data/gifts.json).
  * bossOnly rewards never appear in the normal weighted pool: after a boss battle each one is
  * offered with probability `chance` (it replaces the last regular offer).
  */
@@ -40,6 +41,8 @@ export interface RewardOffer {
   description: string;
   /** Came from the boss-only pool (UI may highlight it). */
   special?: boolean;
+  /** kind 'gift': which gift. */
+  giftId?: string;
 }
 
 export function isSkillReward(kind: RewardKind): boolean {
@@ -69,6 +72,9 @@ export function applyReward(unit: UnitState, offer: RewardOffer, bal?: Balance):
     case 'maxHp':
       unit.maxHp += offer.amount;
       unit.hp += offer.amount;
+      return;
+    case 'gift':
+      if (offer.giftId && !unit.gifts.includes(offer.giftId)) unit.gifts.push(offer.giftId);
       return;
   }
 }
@@ -105,11 +111,20 @@ export function describeOffer(offer: Omit<RewardOffer, 'description'>, unit: Uni
       return `체력 ${Math.round(offer.amount * 100)}% 회복\nHP ${unit.hp} → ${after.hp} / ${unit.maxHp}`;
     case 'maxHp':
       return `최대 체력 +${offer.amount}\nHP ${unit.hp}/${unit.maxHp} → ${after.hp}/${after.maxHp}`;
+    case 'gift':
+      return `패시브 기프트\n${bal.giftDefs.find((g) => g.id === offer.giftId)?.description ?? ''}`;
   }
 }
 
 function makeOffer(def: RewardDef, unit: UnitState, rng: Rng, bal: Balance): RewardOffer | null {
   if (def.kind === 'heal' && unit.hp >= unit.maxHp) return null; // a no-op choice
+  if (def.kind === 'gift') {
+    const unowned = bal.giftDefs.filter((g) => !unit.gifts.includes(g.id));
+    if (unowned.length === 0) return null;
+    const g = rng.pick(unowned);
+    const base = { defId: def.id, name: g.name, kind: def.kind, amount: 1, slots: [] as SkillSlot[], giftId: g.id };
+    return { ...base, description: describeOffer(base, unit, bal) };
+  }
   let slots: SkillSlot[] = [];
   if (isSkillReward(def.kind)) {
     let pool = [...SKILL_SLOTS];

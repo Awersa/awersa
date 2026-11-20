@@ -59,10 +59,10 @@
     "hpPerFloor": 0.14,
     "basePowerEveryFloors": 2,
     "coinPowerEveryFloors": 3,
-    "levelPerFloor": 2,
+    "levelPerFloor": 1,
     "bossEvery": 5,
     "bossHpMultiplier": 1.0,
-    "basePowerAccelDivisor": 40
+    "basePowerAccelDivisor": 60
   },
   "rewards": {
     "offerCount": 3,

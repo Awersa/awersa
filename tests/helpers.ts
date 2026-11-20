@@ -4,15 +4,16 @@ import charactersJson from '../src/data/characters.json';
 import enemiesJson from '../src/data/enemies.json';
 import rewardsJson from '../src/data/rewards.json';
 import statusesJson from '../src/data/statuses.json';
+import giftsJson from '../src/data/gifts.json';
 import { createRng, type Rng } from '../src/core/rng.ts';
 import type { Balance } from '../src/core/balance.ts';
 import type { GameData } from '../src/core/validate.ts';
 import { createUnit, indexSkills } from '../src/core/unit.ts';
 import type { SkillDef, UnitDef, UnitState } from '../src/core/types.ts';
 
-export const bal = (): Balance => structuredClone({ ...balanceJson, statusDefs: statusesJson }) as unknown as Balance;
+export const bal = (): Balance => structuredClone({ ...balanceJson, statusDefs: statusesJson, giftDefs: giftsJson }) as unknown as Balance;
 export const data = (): GameData =>
-  structuredClone({ statuses: statusesJson, skills: skillsJson, players: charactersJson, enemies: enemiesJson, rewards: rewardsJson }) as unknown as GameData;
+  structuredClone({ statuses: statusesJson, gifts: giftsJson, skills: skillsJson, players: charactersJson, enemies: enemiesJson, rewards: rewardsJson }) as unknown as GameData;
 
 /** RNG whose coin flips (chance) follow a script; everything else is a real seeded RNG. */
 export function scriptedRng(flips: boolean[], seed = 1): Rng & { remaining: () => number } {

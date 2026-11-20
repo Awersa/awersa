@@ -1,6 +1,7 @@
 import { chooseEnemyAction } from './ai.ts';
 import { oneSidedAttack } from './attack.ts';
 import { useSkill } from './effects.ts';
+import { fireGifts } from './gifts.ts';
 import { statusTurnEnd } from './status.ts';
 import type { Balance } from './balance.ts';
 import { resolveClash } from './clash.ts';
@@ -36,6 +37,8 @@ export function createBattle(
   withRng(state, (rng) => {
     prepareForBattle(player, rng, bal);
     prepareForBattle(enemy, rng, bal);
+    fireGifts(player, enemy, 'battleStart', rng, bal, events);
+    fireGifts(enemy, player, 'battleStart', rng, bal, events);
     startTurn(state, rng, bal, events);
   });
   return { state, events };
@@ -52,11 +55,12 @@ function startTurn(state: BattleState, rng: Rng, bal: Balance, events: BattleEve
     u.speed = rng.int(u.speedRange[0], u.speedRange[1]);
   }
   events.push({ t: 'turnStart', turn: state.turn, speed: { player: state.player.speed, enemy: state.enemy.speed } });
+  fireGifts(state.player, state.enemy, 'turnStart', rng, bal, events);
+  fireGifts(state.enemy, state.player, 'turnStart', rng, bal, events);
 
   state.enemyIntent = null;
   if (canAct(state.enemy) && (state.enemy.hand.length > 0 || state.enemy.defenseSkill)) {
-    const choice = chooseEnemyAction(state.enemy, rng);
-    const intent = choice === 'defense' ? 'defense' : state.enemy.hand[choice]!;
+    const intent = chooseEnemyAction(state.enemy, rng);
     state.enemyIntent = intent;
     const sk = actionSkill(state.enemy, intent);
     events.push({ t: 'intent', slot: intent, skill: sk.name, ...powerRange(sk) });
@@ -116,18 +120,22 @@ export function takeTurn(state: BattleState, choice: PlayerChoice, bal: Balance)
       else events.push({ t: 'cannotAct', side: 'player', reason: 'panic' });
     } else if (status.reason === 'stagger') events.push({ t: 'cannotAct', side: 'player', reason: 'stagger' });
 
-    let eChoice: number | 'defense' | null = null;
+    // The enemy acts on its announced intent. A pattern move may use a skill that isn't in hand.
+    let eChoice: number | 'defense' | SkillSlot | null = null;
     if (state.enemyIntent && canAct(enemy)) {
-      eChoice = state.enemyIntent === 'defense' ? 'defense' : enemy.hand.indexOf(state.enemyIntent);
-      if (eChoice === -1) eChoice = null;
+      if (state.enemyIntent === 'defense') eChoice = 'defense';
+      else {
+        const idx = enemy.hand.indexOf(state.enemyIntent);
+        eChoice = idx >= 0 ? idx : state.enemyIntent;
+      }
     } else if (isStaggered(enemy)) events.push({ t: 'cannotAct', side: 'enemy', reason: 'stagger' });
 
-    const take = (u: UnitState, c: number | 'defense' | null, panic: boolean): Action | null => {
+    const take = (u: UnitState, c: number | 'defense' | SkillSlot | null, panic: boolean): Action | null => {
       if (c === null) return null;
-      const slot = c === 'defense' ? 'defense' : u.hand[c]!;
+      const slot = typeof c === 'number' ? u.hand[c]! : c;
       const skill = actionSkill(u, slot);
       events.push({ t: 'skillUse', side: u.side, slot, skill: skill.name, ...(panic ? { auto: 'panic' as const } : {}) });
-      if (c !== 'defense') cycleCard(u, c, rng);
+      if (typeof c === 'number') cycleCard(u, c, rng);
       return { unit: u, skill };
     };
     let p = take(player, pChoice, status.reason === 'panic');
@@ -176,6 +184,8 @@ function clash(a: Action, b: Action, rng: Rng, bal: Balance, events: BattleEvent
   const lose = res.winner === 'player' ? e : p;
   changeSanity(win.unit, clashSanityDelta(true, res.clashCount, bal), bal, events);
   changeSanity(lose.unit, clashSanityDelta(false, res.clashCount, bal), bal, events);
+  fireGifts(win.unit, lose.unit, 'clashWin', rng, bal, events);
+  fireGifts(lose.unit, win.unit, 'clashLose', rng, bal, events);
   win.unit.clashWins++;
   const needed = res.winner === 'player' ? bal.battle.playerClashWinsToWin : bal.battle.enemyClashWinsToWin;
   events.push({ t: 'clashWin', side: res.winner, wins: win.unit.clashWins, needed });

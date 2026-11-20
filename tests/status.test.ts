@@ -211,7 +211,7 @@ describe('defense skills', () => {
 
 describe('status data validation', () => {
   it('flags unknown statuses in effects and bad triggers', () => {
-    const d = data() as unknown as Record<'statuses' | 'skills' | 'players' | 'enemies' | 'rewards', Record<string, unknown>[]>;
+    const d = data() as unknown as Record<'statuses' | 'gifts' | 'skills' | 'players' | 'enemies' | 'rewards', Record<string, unknown>[]>;
     d.skills[0]!.coinEffects = [[{ type: 'apply', status: 'nope', potency: 1, count: 1 }]];
     d.statuses[0]!.triggers = [{ on: 'whenever', action: 'damage' }];
     const errs = validateGameData(d);

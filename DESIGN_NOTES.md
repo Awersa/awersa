@@ -249,3 +249,58 @@ First-floor loss stays at about 6–8%.
 | 도담 | 5% | 65% / 46% / 29% | 12.5% / 2% / 0.2% | 23 |
 
 - The simulator's "smart" player defends when the enemy's attack clearly outclasses its best card. Measured this way, defense barely changes win rates (`npm run sim -- --no-defense` to compare). Its value is situational: dodging a clash you'd lose, gaining sanity with evade, or blunting a boss S3. Human playtesting will tell more.
+
+## Milestone 6 — endless loop: gifts, boss pattern, save/resume, records
+
+### Gifts (passives)
+- `src/data/gifts.json`: each gift has a `trigger` (`battleStart`, `turnStart`, `clashWin`, `clashLose`, `coinHit`), an optional `chance`, and `actions` (apply a status to self/target, heal, sanity). New gifts need data only.
+- 10 gifts:
+  - 녹슨 칼날: clash win → bleed to the enemy
+  - 금 간 종: clash loss → tremor to the enemy
+  - 응급 붕대: heal at battle start
+  - 차분한 호흡: poise at battle start
+  - 투지: +2 sanity every turn
+  - 불씨: 25% burn on each hit
+  - 예비 전지: charge at battle start
+  - 날카로운 눈: +4 sanity on clash win
+  - 철갑 피부: heal on clash loss
+  - 파열 탄두: clash win → rupture to the enemy
+- A "기프트" reward offer (weight 2) picks a random gift you don't own. It never offers a duplicate and disappears once you own all of them.
+
+### Boss pattern AI
+- `aiPattern` in enemy data makes the enemy cycle through fixed moves; it overrides weighted choice. 시계탑 관리인 uses **S1 → S2 → 반격 → S1 → S3** in a loop. You can read the pattern from the intent box and plan around it, for example defending on the S3 turn.
+- A pattern move may use a skill that isn't in the enemy's hand. It executes exactly as announced and doesn't cycle the hand.
+
+### Save / resume
+- **Auto-save points**: after every turn, when a battle starts, when it is won (moving to the reward phase), and when a reward is taken.
+- The result is committed **before** the animation plays. Closing the app on the victory screen keeps the win, and on the defeat screen keeps the loss.
+- Closing the app at any moment resumes from the last completed turn: same enemy, HP, sanity, statuses, hand, intent and RNG state. A resumed battle plays out exactly like an uninterrupted one (tested).
+- **Security / robustness** (`src/game/save.ts`):
+  - The save holds only ids and numbers: no skill definitions, names or text.
+  - On load, the run is rebuilt from the shipped game data. Balance changes therefore apply to existing saves, and a tampered save can't inject custom skills or text.
+  - Every field is type- and range-checked. Unknown ids, impossible values (HP above max HP, more coins than the cap, a wrong deck size, unknown statuses or gifts, `__proto__`-style keys) reject the whole save. It is deleted and the game starts fresh instead of crashing.
+  - Status/gift objects are built only from looked-up known ids, so prototype pollution isn't possible.
+- **Records** (`clashduel.records`): best floor and kills per character, plus the total run count. Validated the same way and rebuilt on a null-prototype object.
+- **Title screen**:
+  - "이어하기 (character · floor · HP)" appears when a valid save exists.
+  - Starting a new run while a save exists needs a second tap to confirm ("한 번 더 누르면 새로 시작").
+- **"포기"** ends the run and records it, the same as a loss.
+
+### Scenes
+- Battle → **Reward scene**:
+  - "N층 돌파!", post-battle heal, your build (each skill's range and coin count), owned gifts, 3 offer cards
+  - boss rewards gold, gifts purple
+- Loss → **GameOver scene**:
+  - reached floor, kills, ★ new best or the previous best
+  - "같은 캐릭터로 다시" or "타이틀로"
+
+### Balance after gifts + boss pattern (N=2000)
+- The boss pattern makes the boss much more dangerous: it now uses its full kit on schedule, S3 every 5th move. Gift offers also take slots that would otherwise be power upgrades.
+- Retuned: gift weight 2, enemy level +1 per floor, acceleration divisor 60, enemy HP +14% per floor.
+
+| | 1층 패배 | 5층 보스 돌파 (잘 고름) | 10층 (잘/전체만/무작위) | 최고 |
+|---|---|---|---|---|
+| 한결 | 9% | 42% | 6% / 5% / 0.4% | 20 |
+| 도담 | 5% | 48% | 7% / 4% / 0.4% | 24 |
+
+- The simulator values a gift at a flat ~1.2 power, which is rough. Real players will judge gifts better, so expect human results to beat these numbers.

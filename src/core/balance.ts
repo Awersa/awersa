@@ -1,4 +1,4 @@
-import type { ResistanceGrade, SkillSlot, StatusDef } from './types.ts';
+import type { GiftDef, ResistanceGrade, SkillSlot, StatusDef } from './types.ts';
 
 /** Shape of src/data/balance.json. The engine receives it as a parameter (never imports JSON). */
 export interface Balance {
@@ -46,6 +46,8 @@ export interface Balance {
   };
   /** Status definitions, merged in from src/data/statuses.json when the game data loads. */
   statusDefs: StatusDef[];
+  /** Gift definitions, merged in from src/data/gifts.json when the game data loads. */
+  giftDefs: GiftDef[];
   floor: {
     hpPerFloor: number;
     basePowerEveryFloors: number;

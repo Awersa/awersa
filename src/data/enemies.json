@@ -124,6 +124,13 @@
       "defense": 1.5
     },
     "boss": true,
-    "asset": "enemy.keeper"
+    "asset": "enemy.keeper",
+    "aiPattern": [
+      "S1",
+      "S2",
+      "defense",
+      "S1",
+      "S3"
+    ]
   }
 ]

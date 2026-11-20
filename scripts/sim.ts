@@ -34,9 +34,10 @@ import {
 } from '../src/core/index.ts';
 
 const readJson = (p: string): unknown => JSON.parse(readFileSync(new URL(`../src/data/${p}`, import.meta.url), 'utf8'));
-const bal = { ...(readJson('balance.json') as object), statusDefs: readJson('statuses.json') } as Balance;
+const bal = { ...(readJson('balance.json') as object), statusDefs: readJson('statuses.json'), giftDefs: readJson('gifts.json') } as Balance;
 const rawData = {
   statuses: readJson('statuses.json'),
+  gifts: readJson('gifts.json'),
   skills: readJson('skills.json'),
   players: readJson('characters.json'),
   enemies: readJson('enemies.json'),
@@ -90,6 +91,8 @@ const smartPolicy: Policy = (s) => {
 };
 let useDefense = true;
 const defenseMargin = 3;
+/** Rough power-equivalent of a passive gift for the smart reward policy. */
+const giftValue = 1.2;
 
 function fight(player: UnitState, enemy: UnitState, seed: number, policy: Policy, log = false): BattleState {
   const names = { player: player.name, enemy: enemy.name };
@@ -147,6 +150,7 @@ const smartReward: RewardPolicy = (offers, p) => {
     switch (o.kind) {
       case 'heal': return hpRatio < 0.45 ? 100 : 0;
       case 'maxHp': return 0.4 + (1 - hpRatio);
+      case 'gift': return giftValue;
       case 'basePower':
       case 'coinPower':
       case 'coinCount':

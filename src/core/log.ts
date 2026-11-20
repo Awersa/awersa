@@ -67,6 +67,10 @@ export function formatEvent(e: BattleEvent, names: Record<Side, string>): string
       return `  ${who(e.side, names)} ${st(e.status)} 소멸`;
     case 'spend':
       return `  ${who(e.side, names)} ${st(e.status)} ${e.count} 소모 → 기본 위력 +${e.power}`;
+    case 'gift':
+      return `  ◆ ${who(e.side, names)} 기프트 [${e.gift}] 발동`;
+    case 'heal':
+      return `  ${who(e.side, names)} 체력 +${e.amount} (HP ${e.hp})`;
     case 'battleEnd':
       return `=== ${e.outcome === 'win' ? '승리' : '패배'} (${BATTLE_END_REASON[e.reason]}) ===`;
   }

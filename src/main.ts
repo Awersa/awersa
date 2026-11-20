@@ -4,6 +4,8 @@ import { COLORS, GAME_HEIGHT, GAME_WIDTH } from './config/display';
 import { BootScene } from './scenes/BootScene';
 import { TitleScene } from './scenes/TitleScene';
 import { BattleScene } from './scenes/BattleScene';
+import { RewardScene } from './scenes/RewardScene';
+import { GameOverScene } from './scenes/GameOverScene';
 import { registerServiceWorker } from './platform/registerSW';
 
 new Phaser.Game({
@@ -20,7 +22,7 @@ new Phaser.Game({
   render: { antialias: true, powerPreference: 'high-performance' },
   disableContextMenu: true,
   banner: false,
-  scene: [BootScene, TitleScene, BattleScene],
+  scene: [BootScene, TitleScene, BattleScene, RewardScene, GameOverScene],
 });
 
 registerServiceWorker();

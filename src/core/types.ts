@@ -59,6 +59,23 @@ export interface StatusDef {
   description: string;
 }
 
+/** Passive gift (src/data/gifts.json): when `trigger` happens (with `chance`), run `actions`. */
+export const GIFT_TRIGGERS = ['battleStart', 'turnStart', 'clashWin', 'clashLose', 'coinHit'] as const;
+export type GiftTrigger = (typeof GIFT_TRIGGERS)[number];
+export type GiftAction =
+  | { type: 'apply'; status: StatusId; potency: number; count: number; target: 'self' | 'target' }
+  | { type: 'heal'; amount: number }
+  | { type: 'sanity'; amount: number };
+export interface GiftDef {
+  id: string;
+  name: string;
+  description: string;
+  trigger: GiftTrigger;
+  /** 0..1, default 1. */
+  chance?: number;
+  actions: GiftAction[];
+}
+
 export interface SkillDef {
   id: string;
   name: string;
@@ -90,6 +107,8 @@ export interface UnitDef {
   skills: Record<SkillSlot, string> & { defense?: string };
   /** Enemy AI preference per slot (weighted random among the hand). */
   aiWeights?: Partial<Record<SkillSlot | 'defense', number>>;
+  /** Fixed action cycle (boss pattern). Overrides weights; may use skills not in hand. */
+  aiPattern?: (SkillSlot | 'defense')[];
   boss?: boolean;
   /** Asset manifest key (milestone 7). */
   asset?: string;
@@ -132,6 +151,10 @@ export interface UnitState {
   clashWins: number;
   aiWeights: Partial<Record<SkillSlot | 'defense', number>>;
   statuses: Record<StatusId, StatusStack>;
+  /** Owned gift ids (player). */
+  gifts: string[];
+  aiPattern: (SkillSlot | 'defense')[] | null;
+  patternIndex: number;
   boss: boolean;
 }
 
@@ -196,4 +219,6 @@ export type BattleEvent =
   | { t: 'statusTrigger'; side: Side; status: StatusId; action: StatusAction; amount: number; hp: number }
   | { t: 'statusEnd'; side: Side; status: StatusId }
   | { t: 'spend'; side: Side; status: StatusId; count: number; power: number }
+  | { t: 'gift'; side: Side; gift: string; trigger: GiftTrigger }
+  | { t: 'heal'; side: Side; amount: number; hp: number }
   | { t: 'battleEnd'; outcome: 'win' | 'lose'; reason: 'enemyHp' | 'playerHp' | 'clashWins' };

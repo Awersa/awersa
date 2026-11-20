@@ -44,6 +44,9 @@ export function createUnit(def: UnitDef, skills: SkillTable, side: Side, bal: Ba
     clashWins: 0,
     aiWeights: { ...bal.ai.defaultWeights, ...def.aiWeights },
     statuses: {},
+    gifts: [],
+    aiPattern: def.aiPattern ? [...def.aiPattern] : null,
+    patternIndex: 0,
     boss: def.boss ?? false,
   };
 }
@@ -55,6 +58,7 @@ export function prepareForBattle(u: UnitState, rng: Rng, bal: Balance): void {
   u.staggerTurnsLeft = 0;
   u.clashWins = 0;
   u.statuses = {};
+  u.patternIndex = 0;
   // Thresholds already below current HP can't trigger again.
   u.nextStaggerIndex = u.staggerThresholds.filter((t) => u.hp < t * u.maxHp).length;
   const deck: SkillSlot[] = [];

@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { COLORS, DAMAGE_TYPE_KO, FONT, GAME_HEIGHT, GAME_WIDTH, RESIST_KO } from '../config/display.ts';
 import {
   BATTLE_END_REASON,
-  createBattle,
   effectiveSkill,
   formatEvent,
   headsChance,
@@ -65,6 +64,7 @@ export class BattleScene extends Phaser.Scene {
   private log!: LogPanel;
   private overlay: Phaser.GameObjects.Container | null = null;
   private animator!: ClashAnimator;
+  private newBest = false;
   private animating = false;
   private speedBtn!: Button;
   private enemyPortrait!: Phaser.GameObjects.Rectangle;
@@ -85,14 +85,18 @@ export class BattleScene extends Phaser.Scene {
     this.overlay = null;
     this.cards = [];
     this.animating = false;
+    this.newBest = false;
 
-    const enemy = run.nextEnemy();
-    const { state, events } = createBattle(run.player, enemy, run.battleSeed(), bal);
+    const { state, events, resumed } = run.ensureBattle();
+    const enemy = state.enemy;
     this.state = state;
     this.names = { player: run.player.name, enemy: enemy.name };
 
     this.buildLayout(run.floor);
-    this.log.push(`===== ${run.floor}층: ${enemy.name}${enemy.boss ? ' (보스)' : ''} =====`, ...this.lines(events));
+    this.log.push(
+      `===== ${run.floor}층: ${enemy.name}${enemy.boss ? ' (보스)' : ''}${resumed ? ' — 이어하기' : ''} =====`,
+      ...this.lines(events),
+    );
     this.resultText.setText(
       bal.battle.enemyHpZero === 'lose'
         ? '누구든 체력이 0이 되면 패배 — 상대를 죽이지 마라.'
@@ -129,8 +133,11 @@ export class BattleScene extends Phaser.Scene {
     });
     const leave = new Button(this, GAME_WIDTH - 125, 80, '포기', () => {
       if (leave.getData('armed')) {
+        if (this.animating) return;
+        const run = getRun();
+        const best = run?.finish() ?? false;
         setRun(null);
-        this.scene.start(SceneKey.Title);
+        this.scene.start(SceneKey.GameOver, run ? { characterId: run.characterId, floor: run.floor, kills: run.kills, best, reason: '포기' } : {});
         return;
       }
       leave.setData('armed', true).setText('정말?');
@@ -316,6 +323,13 @@ export class BattleScene extends Phaser.Scene {
     if (status.canChoose && this.selected === null) return;
     const events = takeTurn(this.state, status.canChoose ? this.selected : null, bal);
     this.selected = null;
+    // Persist immediately (before the animation), so closing the app never loses a turn or a result.
+    const run = getRun();
+    if (run) {
+      if (this.state.outcome === 'win') run.winBattle();
+      else if (this.state.outcome === 'lose') this.newBest = run.finish();
+      else run.save();
+    }
 
     const all = this.lines(events);
     this.log.push(...all);
@@ -366,60 +380,21 @@ export class BattleScene extends Phaser.Scene {
 
     const c = this.add.container(0, 0).setDepth(500);
     this.overlay = c;
-    c.add(this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.92).setOrigin(0).setInteractive());
+    c.add(this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.8).setOrigin(0).setInteractive());
+    const title = text(this, CX, 760, 140, win ? COLORS.ok : COLORS.danger).setOrigin(0.5).setText(win ? '승리' : '패배');
+    title.setScale(0.6).setAlpha(0);
+    this.tweens.add({ targets: title, scale: 1, alpha: 1, duration: 260, ease: 'Back.easeOut' });
+    c.add([title, text(this, CX, 900, 44, COLORS.textDim).setOrigin(0.5).setText(reason)]);
     c.add(
-      text(this, CX, 330, 110, win ? COLORS.ok : COLORS.danger)
-        .setOrigin(0.5)
-        .setText(win ? '승리' : '패배'),
+      new Button(this, CX, 1150, win ? '보상 받기' : '결과 보기', () => {
+        if (win) this.scene.start(SceneKey.Reward);
+        else {
+          setRun(null);
+          this.scene.start(SceneKey.GameOver, { characterId: run.characterId, floor: run.floor, kills: run.kills, best: this.newBest, reason });
+        }
+      }),
     );
-    c.add(text(this, CX, 450, 44, COLORS.textDim).setOrigin(0.5).setText(reason));
-
-    if (win) {
-      const healed = run.recover();
-      c.add(
-        text(this, CX, 560, 40, COLORS.ok)
-          .setOrigin(0.5)
-          .setText(`전투 후 회복 +${healed}  (HP ${run.player.hp}/${run.player.maxHp})`),
-      );
-      c.add(text(this, CX, 630, 46).setOrigin(0.5).setText('보상을 하나 고르세요'));
-      run.rewardOffers().forEach((offer, i) => {
-        const y = 800 + i * 330;
-        const box = this.add.container(CX, y);
-        box.add([
-          this.add
-            .rectangle(0, 0, GAME_WIDTH - 120, 290, offer.special ? 0x3a2410 : COLORS.panel)
-            .setStrokeStyle(offer.special ? 9 : 5, offer.special ? 0xffd166 : COLORS.gold),
-          text(this, 0, -100, 46, offer.special ? '#ffd166' : COLORS.text)
-            .setOrigin(0.5)
-            .setText(offer.special ? `★ ${offer.name} (보스 보상)` : offer.name),
-          text(this, 0, -60, 30, COLORS.textDim)
-            .setOrigin(0.5, 0)
-            .setAlign('center')
-            .setLineSpacing(6)
-            .setWordWrapWidth(GAME_WIDTH - 180, true)
-            .setText(offer.description),
-        ]);
-        box.setSize(GAME_WIDTH - 120, 290);
-        makePressable(box, () => {
-          run.claimReward(offer);
-          this.scene.restart();
-        });
-        c.add(box);
-      });
-    } else {
-      c.add(
-        text(this, CX, 700, 48)
-          .setOrigin(0.5)
-          .setAlign('center')
-          .setText(`도달: ${run.floor}층\n격파: ${run.kills}`),
-      );
-      const again = new Button(this, CX, 1100, '타이틀로', () => {
-        setRun(null);
-        this.scene.start(SceneKey.Title);
-      });
-      const logBtn = new Button(this, CX, 1300, '로그 보기', () => this.log.open());
-      c.add([again, logBtn]);
-    }
+    c.add(new Button(this, CX, 1350, '로그 보기', () => this.log.open(), { fill: COLORS.panel }));
   }
 }
 

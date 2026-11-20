@@ -5,6 +5,7 @@ import type { Rng } from './rng.ts';
 import { changeSanity } from './sanity.ts';
 import { clashPower, flipCoins, headsChance } from './skill.ts';
 import { rollCrit, trigger } from './status.ts';
+import { fireGifts } from './gifts.ts';
 import type { BattleEvent, EffectiveSkill, UnitState } from './types.ts';
 
 /** How the target is defending against this one-sided attack. */
@@ -84,5 +85,6 @@ export function oneSidedAttack(
     if (target.hp <= 0) break;
     trigger(target, 'hitTaken', bal, events);
     applyEffects(skill.coinEffects?.[c], attacker, target, bal, events);
+    fireGifts(attacker, target, 'coinHit', rng, bal, events);
   }
 }

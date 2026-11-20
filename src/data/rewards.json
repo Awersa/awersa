@@ -46,6 +46,13 @@
     "weight": 2
   },
   {
+    "id": "gift",
+    "name": "기프트",
+    "kind": "gift",
+    "amount": 1,
+    "weight": 2
+  },
+  {
     "id": "coin_add",
     "name": "코인 주조",
     "kind": "coinCount",
