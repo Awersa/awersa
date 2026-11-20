@@ -340,3 +340,18 @@ First-floor loss stays at about 6–8%.
 - The artifact build (`npm run build:artifact`, Vite mode `artifact`) inlines all assets as `data:` URLs, so the single-file play page includes them. Mind the 16 MB page limit when adding long BGM.
 - Verified by temporarily adding a test portrait, coin image and sound: they replaced the placeholders in the browser with no failed requests. The test files were removed afterwards.
 - Full key list, sizes and formats: `ASSETS.md`.
+
+## Synthesized sound effects (user request)
+- The user asked to copy Limbus Company's sounds. Declined: those are Project Moon's copyrighted assets. Offered and built original sounds instead.
+- `src/game/synth.ts`: all 15 SFX keys have a Web Audio recipe (oscillators + filtered noise + envelopes); no files, no licensing questions:
+  - coin "ting" with slight random pitch, coin crack
+  - rising/falling clash win/lose jingles
+  - swish (slash), sharp "thk" (pierce), deep thump (blunt)
+  - crit ring, metallic guard clang, whoosh (evade), stagger rumble, status blip
+  - victory/defeat motifs
+- **Priority**: if a sound file exists for a key (manifest + `src/assets/sounds`), the file plays; otherwise the synth recipe plays. The sound on/off setting and SFX volume apply to both.
+- Uses Phaser's already-unlocked AudioContext (so it starts after the first touch, like files). Identical sounds fired within 30 ms are merged to avoid stacking.
+- BGM is not synthesized; add files for that (see `ASSETS.md`).
+- Verified:
+  - every recipe was rendered offline in Chromium; all are audible and none clip (peak ≤ 0.45 after level balancing)
+  - a real 4-turn game started 34 synth voices with sound on and 0 with sound off, with no errors

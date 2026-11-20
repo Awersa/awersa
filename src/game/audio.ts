@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { getSettings } from './settings.ts';
+import { playSynth } from './synth.ts';
 
 /**
  * Sound helpers. Every call is a no-op when the sound file isn't bundled (silent fallback),
@@ -10,14 +11,25 @@ let bgm: Phaser.Sound.BaseSound | null = null;
 
 const has = (scene: Phaser.Scene, key: string) => scene.cache.audio.exists(key);
 
+/** Plays a sound effect: the bundled file if there is one, otherwise a synthesized fallback. */
 export function sfx(scene: Phaser.Scene, key: string, rate = 1): void {
   const s = getSettings();
-  if (!s.sound || !has(scene, key)) return;
+  if (!s.sound) return;
+  if (!has(scene, key)) {
+    playSynth(audioContext(scene), key, s.sfxVolume);
+    return;
+  }
   try {
     scene.sound.play(key, { volume: s.sfxVolume, rate });
   } catch {
     /* audio not available — ignore */
   }
+}
+
+/** The Web Audio context Phaser already unlocked on the first touch (null with HTML5/no audio). */
+function audioContext(scene: Phaser.Scene): AudioContext | null {
+  const sm = scene.sound;
+  return sm instanceof Phaser.Sound.WebAudioSoundManager ? sm.context : null;
 }
 
 /** Plays a looping background track (keeps playing across scenes if it's the same key). */
