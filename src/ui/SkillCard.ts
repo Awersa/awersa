@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, DAMAGE_TYPE_KO, FONT, SIN_KO } from '../config/display.ts';
 import type { EffectiveSkill } from '../core/index.ts';
 import { makePressable } from './pressable.ts';
+import { TEX } from './placeholders.ts';
 
 export interface CardInfo {
   skill: EffectiveSkill;
@@ -63,7 +64,7 @@ export class SkillCard extends Phaser.GameObjects.Container {
     const gap = 46;
     for (let i = 0; i < s.coinCount; i++) {
       const cx = (i - (s.coinCount - 1) / 2) * gap;
-      this.coins.add(this.scene.add.circle(cx, 0, 17, COLORS.gold).setStrokeStyle(3, COLORS.goldDark));
+      this.coins.add(this.scene.add.image(cx, 0, TEX.coinHeads).setDisplaySize(36, 36));
     }
   }
 

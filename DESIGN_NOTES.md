@@ -319,3 +319,24 @@ First-floor loss stays at about 6–8%.
 | defend (shield ×2.0) | 3.0% | 50.1% | 7.0% |
 
   Guard is now a real option: it clearly helps early and against the boss's big turns, without being always correct. Evade (한결) is unchanged; its value is sanity gain, not damage.
+
+## Milestone 7 — asset manifest + sound
+- `src/assets/manifest.json` maps keys to file paths. `src/assets/registry.ts` uses Vite's `import.meta.glob`, so **only files that exist at build time** are bundled and loaded. Missing assets cost nothing: no 404 requests, no errors.
+- Security: assets are bundled at build time; nothing is ever loaded from a runtime-provided path or URL. Manifest keys and paths are pattern-checked (no `..`, image/audio extensions only). CSP stays `'self'` + `data:`/`blob:` for media.
+- **Fallbacks**:
+  - images: a colored box with a name, or the generated coin placeholder textures (already used since M4)
+  - sounds: silence
+  - a file that fails to load only logs a warning
+- **Where assets show up**:
+  - enemy portrait (idle, switching to attack while it hits)
+  - battle / boss / title backgrounds
+  - coin textures in clashes and on hand cards
+  - character idle/attack slots are reserved; the current layout has no player portrait spot
+- **Sounds**:
+  - BGM: title / battle / boss, looping, and kept playing across scenes when it's the same track
+  - SFX: tap, coin flip, coin break, clash win/lose, hit by damage type, crit, guard, evade, stagger, status, victory, defeat
+  - Animation SFX are skipped in "연출 끔" mode
+- **Settings**: `sound` on/off (title screen button), `sfxVolume` 0.8, `bgmVolume` 0.5. Older saved settings without these fields are upgraded with defaults.
+- The artifact build (`npm run build:artifact`, Vite mode `artifact`) inlines all assets as `data:` URLs, so the single-file play page includes them. Mind the 16 MB page limit when adding long BGM.
+- Verified by temporarily adding a test portrait, coin image and sound: they replaced the placeholders in the browser with no failed requests. The test files were removed afterwards.
+- Full key list, sizes and formats: `ASSETS.md`.

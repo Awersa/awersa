@@ -4,6 +4,8 @@ import { gameContext } from '../game/context.ts';
 import { loadRecords } from '../game/records.ts';
 import { RunSession, setRun } from '../game/run.ts';
 import { Button } from '../ui/Button.ts';
+import { playBgm, stopBgm } from '../game/audio.ts';
+import { getSettings, updateSettings } from '../game/settings.ts';
 import { SceneKey } from './keys.ts';
 
 export class TitleScene extends Phaser.Scene {
@@ -17,6 +19,18 @@ export class TitleScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(COLORS.bg);
     const saved = RunSession.load();
     const records = loadRecords();
+    if (this.textures.exists('bg.title')) {
+      const bg = this.add.image(cx, GAME_HEIGHT / 2, 'bg.title').setAlpha(0.5);
+      bg.setScale(Math.max(GAME_WIDTH / bg.width, GAME_HEIGHT / bg.height));
+    }
+    playBgm(this, 'bgm.title');
+    const soundLabel = () => (getSettings().sound ? '소리 켬' : '소리 끔');
+    const soundBtn: Button = new Button(this, GAME_WIDTH - 140, 80, soundLabel(), () => {
+      updateSettings({ sound: !getSettings().sound });
+      if (getSettings().sound) playBgm(this, 'bgm.title');
+      else stopBgm();
+      soundBtn.setText(soundLabel());
+    }, { width: 230, height: 130, fontSize: 40, fill: COLORS.panel });
 
     this.add.circle(cx, 300, 130, COLORS.gold);
     this.add.circle(cx, 300, 104, COLORS.goldDark);

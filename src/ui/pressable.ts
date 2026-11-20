@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { sfx } from '../game/audio.ts';
 
 /**
  * Touch-friendly press handling: fires on pointer *up* inside the object (sliding off cancels),
@@ -31,6 +32,7 @@ export function makePressable(
     const now = obj.scene.time.now;
     if (!was || !enabled || now - lastFire < 250) return;
     lastFire = now;
+    sfx(obj.scene, 'sfx.ui.tap');
     onClick();
   });
   return (on: boolean) => {

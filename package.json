@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "sim": "node scripts/sim.ts",
-    "build:artifact": "npm run build && node scripts/build-artifact.mjs",
+    "build:artifact": "npm run typecheck && vite build --mode artifact && node scripts/build-artifact.mjs",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json"
   },
   "dependencies": {

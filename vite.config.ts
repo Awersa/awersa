@@ -78,13 +78,15 @@ function serviceWorkerPlugin(): Plugin {
   };
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   // Relative base so the build works from any sub-path (e.g. GitHub Pages /repo/).
   base: './',
   define: { __APP_VERSION__: JSON.stringify(JSON.parse(readFileSync('package.json', 'utf8')).version) },
   plugins: [cspPlugin(), serviceWorkerPlugin()],
   build: {
     target: 'es2022',
+    // The single-file artifact build embeds images/sounds as data: URLs; normal builds emit files.
+    assetsInlineLimit: mode === 'artifact' ? 100 * 1024 * 1024 : 4096,
     sourcemap: false,
     chunkSizeWarningLimit: 2000, // Phaser itself is ~1.2MB
   },
@@ -96,4 +98,4 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     environment: 'node',
   },
-});
+}));

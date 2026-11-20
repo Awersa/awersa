@@ -1,7 +1,7 @@
 # Clash Duel — 1대1 코인 합 전투 (무한 모드)
 
 개인 취미 프로젝트. 휴대폰 브라우저에서 돌아가는 1대1 합(Clash) 전투 무한 모드 게임.
-사양: [`SPEC.md`](SPEC.md) · 가정/결정 기록: [`DESIGN_NOTES.md`](DESIGN_NOTES.md)
+사양: [`SPEC.md`](SPEC.md) · 가정/결정 기록: [`DESIGN_NOTES.md`](DESIGN_NOTES.md) · 이미지/사운드 넣는 법: [`ASSETS.md`](ASSETS.md)
 
 ## 실행
 

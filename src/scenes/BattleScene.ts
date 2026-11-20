@@ -16,6 +16,7 @@ import {
   stackLabel,
   type Balance,
   type EffectiveSkill,
+  type SkillSlot,
   DAMAGE_TYPES,
   type BattleEvent,
   type BattleState,
@@ -27,7 +28,8 @@ import { getRun, setRun } from '../game/run.ts';
 import { HpBar, SanityGauge, pips } from '../ui/Bar.ts';
 import { Button } from '../ui/Button.ts';
 import { LogPanel } from '../ui/LogPanel.ts';
-import { makePressable } from '../ui/pressable.ts';
+import { Portrait } from '../ui/portrait.ts';
+import { playBgm, sfx } from '../game/audio.ts';
 import { SkillCard } from '../ui/SkillCard.ts';
 import { ClashAnimator } from '../ui/ClashAnimator.ts';
 import { ANIM_SPEEDS, getSettings, updateSettings, type AnimSpeed } from '../game/settings.ts';
@@ -65,9 +67,11 @@ export class BattleScene extends Phaser.Scene {
   private overlay: Phaser.GameObjects.Container | null = null;
   private animator!: ClashAnimator;
   private newBest = false;
+  /** What each side used this turn (for hit sounds). */
+  private turnSlots: Partial<Record<Side, SkillSlot | 'defense'>> = {};
   private animating = false;
   private speedBtn!: Button;
-  private enemyPortrait!: Phaser.GameObjects.Rectangle;
+  private enemyPortrait!: Portrait;
 
   constructor() {
     super(SceneKey.Battle);
@@ -92,6 +96,12 @@ export class BattleScene extends Phaser.Scene {
     this.state = state;
     this.names = { player: run.player.name, enemy: enemy.name };
 
+    const bgKey = enemy.boss && this.textures.exists('bg.boss') ? 'bg.boss' : 'bg.battle';
+    if (this.textures.exists(bgKey)) {
+      const bg = this.add.image(CX, GAME_HEIGHT / 2, bgKey).setAlpha(0.35);
+      bg.setScale(Math.max(GAME_WIDTH / bg.width, GAME_HEIGHT / bg.height));
+    }
+    playBgm(this, enemy.boss ? 'bgm.boss' : 'bgm.battle');
     this.buildLayout(run.floor);
     this.log.push(
       `===== ${run.floor}층: ${enemy.name}${enemy.boss ? ' (보스)' : ''}${resumed ? ' — 이어하기' : ''} =====`,
@@ -114,6 +124,12 @@ export class BattleScene extends Phaser.Scene {
       },
       damageAnchor: (side) => (side === 'player' ? { x: CX, y: 1120 } : { x: 230, y: 470 }),
       flash: (side) => this.flash(side),
+      sfx: (key) => sfx(this, key),
+      damageType: (side) => {
+        const slot = this.turnSlots[side];
+        return slot ? actionSkill(this.state[side], slot).damageType : null;
+      },
+      pose: (side, pose) => side === 'enemy' && this.enemyPortrait.setPose(pose),
     });
     this.animator.setSpeed(getSettings().animSpeed);
     this.refresh();
@@ -153,8 +169,7 @@ export class BattleScene extends Phaser.Scene {
     this.enemyHp = new HpBar(this, 90, 260, GAME_WIDTH - 180, 50);
     this.enemyInfo = text(this, 90, 312, 32, COLORS.textDim);
 
-    this.enemyPortrait = this.add.rectangle(230, 510, 280, 260, COLORS.red, 0.3).setStrokeStyle(4, COLORS.red);
-    text(this, 230, 510, 40).setOrigin(0.5).setText('적');
+    this.enemyPortrait = new Portrait(this, 230, 510, 280, 260, this.state.enemy.asset, '적', COLORS.red);
     this.add.rectangle(700, 510, 580, 260, COLORS.panel).setStrokeStyle(4, COLORS.red);
     text(this, 430, 395, 30, COLORS.textDim).setText('적의 의도');
     this.intentText = text(this, 430, 435, 38).setWordWrapWidth(540, true).setLineSpacing(6);
@@ -322,6 +337,8 @@ export class BattleScene extends Phaser.Scene {
     const status = playerStatus(this.state);
     if (status.canChoose && this.selected === null) return;
     const events = takeTurn(this.state, status.canChoose ? this.selected : null, bal);
+    this.turnSlots = {};
+    for (const ev of events) if (ev.t === 'skillUse' && !this.turnSlots[ev.side]) this.turnSlots[ev.side] = ev.slot;
     this.selected = null;
     // Persist immediately (before the animation), so closing the app never loses a turn or a result.
     const run = getRun();
@@ -361,10 +378,8 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private flash(side: Side): void {
-    if (side === 'enemy') {
-      this.enemyPortrait.setFillStyle(0xffffff, 0.9);
-      this.time.delayedCall(90, () => this.enemyPortrait.setFillStyle(COLORS.red, 0.3));
-    } else {
+    if (side === 'enemy') this.enemyPortrait.flash();
+    else {
       this.playerHp.setAlpha(0.3);
       this.time.delayedCall(90, () => this.playerHp.setAlpha(1));
     }
@@ -380,6 +395,7 @@ export class BattleScene extends Phaser.Scene {
 
     const c = this.add.container(0, 0).setDepth(500);
     this.overlay = c;
+    sfx(this, win ? 'sfx.victory' : 'sfx.defeat');
     c.add(this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.8).setOrigin(0).setInteractive());
     const title = text(this, CX, 760, 140, win ? COLORS.ok : COLORS.danger).setOrigin(0.5).setText(win ? '승리' : '패배');
     title.setScale(0.6).setAlpha(0);

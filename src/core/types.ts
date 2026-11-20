@@ -153,6 +153,8 @@ export interface UnitState {
   statuses: Record<StatusId, StatusStack>;
   /** Owned gift ids (player). */
   gifts: string[];
+  /** Asset manifest base key, e.g. "enemy.thug" (images: <asset>.idle / <asset>.attack). */
+  asset?: string;
   aiPattern: (SkillSlot | 'defense')[] | null;
   patternIndex: number;
   boss: boolean;

@@ -45,6 +45,7 @@ export function createUnit(def: UnitDef, skills: SkillTable, side: Side, bal: Ba
     aiWeights: { ...bal.ai.defaultWeights, ...def.aiWeights },
     statuses: {},
     gifts: [],
+    ...(def.asset ? { asset: def.asset } : {}),
     aiPattern: def.aiPattern ? [...def.aiPattern] : null,
     patternIndex: 0,
     boss: def.boss ?? false,

@@ -15,6 +15,11 @@ export interface AnimatorHooks {
   /** Screen position where damage numbers for this side should pop. */
   damageAnchor(side: Side): { x: number; y: number };
   flash(side: Side): void;
+  /** Play a sound effect by manifest key (no-op if missing). */
+  sfx(key: string): void;
+  /** Damage type of the skill `side` is using this turn (for hit sounds). */
+  damageType(side: Side): string | null;
+  pose(side: Side, pose: 'idle' | 'attack'): void;
 }
 
 /** Stage area (the result panel region). */
@@ -113,6 +118,8 @@ export class ClashAnimator {
       }
       await this.wait(350);
     } finally {
+      this.hooks.pose('player', 'idle');
+      this.hooks.pose('enemy', 'idle');
       this.layer?.destroy(true);
       this.layer = null;
       this.vs = null;
@@ -137,6 +144,7 @@ export class ClashAnimator {
       case 'clashRound':
         return this.clashRound(ev);
       case 'clashEnd': {
+        if (!this.instant) this.hooks.sfx(ev.winner === 'player' ? 'sfx.clash.win' : 'sfx.clash.lose');
         this.vs?.setText(ev.tieBreak ? '동점 한도!' : '');
         this.banner(`${this.hooks.names[ev.winner]} 합 승리! (합 ${ev.clashCount}회)`, ev.winner === 'player' ? COLORS.ok : COLORS.danger);
         return this.wait(550);
@@ -151,6 +159,7 @@ export class ClashAnimator {
       case 'coinHit':
         return this.hit(ev);
       case 'stagger':
+        if (!this.instant) this.hooks.sfx('sfx.stagger');
         this.hooks.flash(ev.side);
         this.banner(`${this.hooks.names[ev.side]} 흐트러짐!`, '#f1c40f', 70);
         return this.wait(650);
@@ -158,6 +167,7 @@ export class ClashAnimator {
         this.banner(`${this.hooks.names[ev.side]} 패닉!`, '#c07fd8', 64);
         return this.wait(600);
       case 'guard': {
+        if (!this.instant) this.hooks.sfx('sfx.guard');
         const row = this.ensureRow(ev.side, '');
         this.vs?.setText('수비');
         await this.flip(this.alive(row), ev.heads);
@@ -170,6 +180,7 @@ export class ClashAnimator {
         this.vs?.setText('회피');
         await this.flip(this.alive(row).slice(0, ev.heads.length), ev.heads);
         void this.pop(row.power, String(ev.power), ev.success ? '#9fd0ff' : '#9a8f80');
+        if (ev.success && !this.instant) this.hooks.sfx('sfx.evade');
         const a = this.hooks.damageAnchor(ev.side);
         this.float(ev.success ? '회피!' : '회피 실패', a.x, a.y - 40, ev.success ? '#9fd0ff' : '#ff9a8a', 52);
         return this.wait(ev.success ? 420 : 260);
@@ -193,6 +204,7 @@ export class ClashAnimator {
         this.banner(`${ev.skill} — 공격이 없어 무의미`, COLORS.textDim, 40);
         return this.wait(450);
       case 'statusApply': {
+        if (!this.instant) this.hooks.sfx('sfx.status');
         const a = this.hooks.damageAnchor(ev.side);
         this.float(stackLabel(this.hooks.statusLabel(ev.status), ev.potency, ev.count), a.x, a.y + 70, '#ffd6a0', 36);
         return this.wait(120);
@@ -258,6 +270,7 @@ export class ClashAnimator {
 
   private async flip(coins: Phaser.GameObjects.Image[], heads: boolean[]): Promise<void> {
     if (coins.length === 0) return;
+    if (!this.instant) this.hooks.sfx('sfx.coin.flip');
     await this.tween({ targets: coins, scaleX: 0, ease: 'Quad.easeIn' }, 110);
     coins.forEach((c, i) => c.setTexture(heads[i] ? TEX.coinHeads : TEX.coinTails));
     await this.tween({ targets: coins, scaleX: 1, ease: 'Quad.easeOut' }, 110);
@@ -283,6 +296,7 @@ export class ClashAnimator {
     const row = ev.loser === 'player' ? p : e;
     const coin = row.coins[row.coins.length - 1 - row.broken];
     row.broken++;
+    if (!this.instant) this.hooks.sfx('sfx.coin.break');
     if (coin) {
       coin.setTexture(TEX.coinBroken).setTint(0xff6655);
       this.shake(0.004, 120);
@@ -303,6 +317,12 @@ export class ClashAnimator {
       void this.tween({ targets: coin, scale: 1.35, yoyo: true, ease: 'Quad.easeOut' }, 160);
     }
     void this.pop(row.power, String(ev.power), '#ffe08a');
+    if (!this.instant) {
+      this.hooks.pose(ev.attacker, 'attack');
+      const dt = this.hooks.damageType(ev.attacker);
+      if (ev.damage > 0 && dt) this.hooks.sfx(`sfx.hit.${dt}`);
+      if (ev.crit) this.hooks.sfx('sfx.crit');
+    }
     this.hooks.setHp(target, ev.targetHp, this.ms(260));
     this.hooks.flash(target);
     const a = this.hooks.damageAnchor(target);

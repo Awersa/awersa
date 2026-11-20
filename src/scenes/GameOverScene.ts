@@ -4,6 +4,7 @@ import { gameContext } from '../game/context.ts';
 import { loadRecords } from '../game/records.ts';
 import { RunSession, setRun } from '../game/run.ts';
 import { Button } from '../ui/Button.ts';
+import { stopBgm } from '../game/audio.ts';
 import { SceneKey } from './keys.ts';
 
 export interface GameOverData {
@@ -25,6 +26,7 @@ export class GameOverScene extends Phaser.Scene {
   create(d: GameOverData): void {
     const { data } = gameContext();
     this.cameras.main.setBackgroundColor(COLORS.bg);
+    stopBgm();
     const ch = data.players.find((p) => p.id === d.characterId);
     const rec = loadRecords();
     const best = d.characterId ? rec.best[d.characterId] : undefined;
