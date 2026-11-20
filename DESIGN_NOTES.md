@@ -355,3 +355,8 @@ First-floor loss stays at about 6–8%.
 - Verified:
   - every recipe was rendered offline in Chromium; all are audible and none clip (peak ≤ 0.45 after level balancing)
   - a real 4-turn game started 34 synth voices with sound on and 0 with sound off, with no errors
+
+### Sound picks (user listened to candidates on a preview page)
+- Coin flip: clear bell "ding" (3136 Hz + a 10 Hz-detuned partner for shimmer, 0.7 s ring).
+- Coin break: high flicked "ping" (3900→4186 Hz in 20 ms, 0.38 s).
+- Clash win: **no sound**. The user disliked every jingle, so the coin sounds carry the moment. A file for `sfx.clash.win` would still play if one is ever added.

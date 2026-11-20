@@ -88,9 +88,7 @@ export const RECIPES: Record<string, Recipe> = {
     noise(c, o, t, { filter: 'highpass', f0: 8000, dur: 0.01, gain: 0.18 * v, attack: 0.001 });
   },
 
-  'sfx.clash.win': (c, o, t, v) => {
-    [660, 880, 1320].forEach((f, i) => tone(c, o, t, { type: 'triangle', f0: f, dur: 0.18, gain: 0.22 * v, delay: i * 0.07 }));
-  },
+  // 'sfx.clash.win': intentionally silent (user's choice) — the coin sounds carry the moment.
 
   'sfx.clash.lose': (c, o, t, v) => {
     tone(c, o, t, { type: 'square', f0: 330, f1: 196, dur: 0.32, gain: 0.12 * v });
