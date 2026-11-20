@@ -91,3 +91,15 @@ The spec is in `SPEC.md`. This file records **assumptions I made** where the spe
 |---|---|---|---|---|---|
 | 한결 | 21% | 4 | 8 | 21% | 76% / 8% / 16% |
 | 도담 | 26% | 3 | 6 | 14% | 57% / 9% / 34% |
+
+## Milestone 3 — battle screen (text-based)
+
+### Assumptions / decisions
+- **Card choice takes two taps**: tap a card to select it, then press the "합 개시" button. This prevents accidental taps. Tapping the same card again deselects it.
+- **Lethal warning**: the card shows "⚠ 치사 위험" when its best case (every coin heads, with a clash bonus as large as its coin count) reaches the enemy's current HP. The duel rule makes this important. It is an upper bound, so in practice it often won't actually kill.
+- **Enemy intent box**: shows skill, power range, coin count, damage type and its max damage to you. It turns red when it can kill you.
+- **Result panel**: shows the latest turn, up to 9 lines. The full log is in "로그" (scroll by dragging).
+- **"포기"** asks for confirmation ("정말?") on the first tap and acts on the second, within 2 seconds.
+- **Victory rewards (3 choose 1)** are already shown at the end of a battle, so the endless loop is playable on a phone now. The polished screen, saving/resume and the game-over record are milestone 6. For now, leaving the app loses the run.
+- **The title screen now has character select**, which the spec places in milestone 6. It was needed to play.
+- **Security**: all text (data, logs) is drawn on the Phaser canvas. No HTML/DOM injection path exists.
